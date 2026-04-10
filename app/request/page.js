@@ -13,28 +13,51 @@ function RequestForm() {
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
 
-  const getLocation = () => {
-    if (!navigator.geolocation) {
-      alert("المتصفح لا يدعم تحديد الموقع");
-      return;
+const getLocation = () => {
+  if (!navigator.geolocation) {
+    alert("المتصفح لا يدعم تحديد الموقع");
+    return;
+  }
+
+  setLoadingLocation(true);
+
+  // المحاولة الأولى (دقة عالية)
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      setLocation({
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+      });
+      setLoadingLocation(false);
+      alert("تم تحديد موقعك بنجاح ✅");
+    },
+    () => {
+      // المحاولة الثانية (دقة عادية)
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+          setLoadingLocation(false);
+          alert("تم تحديد موقعك (دقة عادية) ✅");
+        },
+        () => {
+          setLoadingLocation(false);
+          alert("لم نتمكن من تحديد موقعك 😢 جرب تكون في مكان مفتوح أو فعّل GPS");
+        },
+        {
+          enableHighAccuracy: false,
+          timeout: 15000,
+        }
+      );
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 10000,
     }
-
-    setLoadingLocation(true);
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setLocation({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        });
-        setLoadingLocation(false);
-      },
-      () => {
-        alert("لم نتمكن من تحديد موقعك");
-        setLoadingLocation(false);
-      }
-    );
-  };
+  );
+};
 
   const getServicePrice = (serviceName) => {
     if (serviceName === "بطارية") return 150;
@@ -174,7 +197,14 @@ function RequestForm() {
             {loadingLocation ? "جارٍ تحديد الموقع..." : "تحديد موقعي 📍"}
           </button>
 
-          {location && <p className="text-green-400">تم تحديد الموقع ✅</p>}
+          {location && (
+            <div className="text-green-400 text-sm space-y-1">
+              <p>تم تحديد الموقع ✅</p>
+              <p>
+                Lat: {location.lat} | Lng: {location.lng}
+              </p>
+            </div>
+          )}
 
           <div className="bg-black border border-gray-700 p-4 rounded-xl space-y-3">
             <label className="block text-sm text-gray-300">صورة العطل</label>
