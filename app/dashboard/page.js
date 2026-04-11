@@ -14,6 +14,7 @@ import {
 export default function DashboardPage() {
   const [requests, setRequests] = useState([]);
   const [filter, setFilter] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
   const [showAlert, setShowAlert] = useState(false);
   const previousCountRef = useRef(0);
   const firstLoadRef = useRef(true);
@@ -74,12 +75,33 @@ export default function DashboardPage() {
   }, []);
 
   const filteredRequests = useMemo(() => {
-    if (filter === "all") return requests;
-    return requests.filter((request) => {
-      const status = request.status || "new";
-      return status === filter;
-    });
-  }, [requests, filter]);
+    let result = requests;
+
+    if (filter !== "all") {
+      result = result.filter((request) => {
+        const status = request.status || "new";
+        return status === filter;
+      });
+    }
+
+    if (searchTerm.trim()) {
+      const search = searchTerm.trim().toLowerCase();
+
+      result = result.filter((request) => {
+        const name = request.name?.toLowerCase() || "";
+        const phone = request.phone?.toLowerCase() || "";
+        const requestNumber = request.requestNumber?.toLowerCase() || "";
+
+        return (
+          name.includes(search) ||
+          phone.includes(search) ||
+          requestNumber.includes(search)
+        );
+      });
+    }
+
+    return result;
+  }, [requests, filter, searchTerm]);
 
   const countNew = requests.filter(
     (r) => (r.status || "new") === "new"
@@ -173,6 +195,16 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        <div className="mb-6">
+          <input
+            type="text"
+            placeholder="ابحث بالاسم أو رقم الموبايل أو رقم الطلب"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full bg-gray-900 border border-gray-800 rounded-2xl p-4 text-white outline-none focus:border-red-500"
+          />
+        </div>
+
         <div className="flex flex-wrap gap-3 mb-8">
           <button
             onClick={() => setFilter("all")}
@@ -223,6 +255,10 @@ export default function DashboardPage() {
                         </h2>
                         <p className="text-gray-400 text-sm mt-1">
                           رقم الموبايل: {request.phone || "غير محدد"}
+                        </p>
+
+                        <p className="text-red-400 text-sm font-bold mt-2">
+                          رقم الطلب: {request.requestNumber || "غير موجود"}
                         </p>
                       </div>
 
