@@ -2,9 +2,8 @@
 
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { db, storage } from "../firebase";
+import { db } from "../firebase";
 import { collection, addDoc } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 function RequestForm() {
   const searchParams = useSearchParams();
@@ -123,18 +122,6 @@ function RequestForm() {
     try {
       setSubmitting(true);
 
-      let imageUrl = null;
-      let imageName = null;
-
-      if (selectedImage) {
-        const fileName = `${Date.now()}_${selectedImage.name}`;
-        const imageRef = ref(storage, `requests/${fileName}`);
-
-        await uploadBytes(imageRef, selectedImage);
-        imageUrl = await getDownloadURL(imageRef);
-        imageName = selectedImage.name;
-      }
-
       await addDoc(collection(db, "requests"), {
         service,
         name,
@@ -149,8 +136,8 @@ function RequestForm() {
         status: "new",
         location: location || null,
         manualAddress: manualAddress.trim() || null,
-        imageName,
-        imageUrl,
+        imageName: selectedImage ? selectedImage.name : null,
+        imageUrl: null,
         createdAt: new Date(),
       });
 
@@ -162,7 +149,7 @@ function RequestForm() {
       setLocationMessage("");
     } catch (error) {
       console.error(error);
-      alert("حصل خطأ ❌");
+      alert("حصل خطأ أثناء إرسال الطلب ❌");
     } finally {
       setSubmitting(false);
     }
@@ -340,6 +327,10 @@ function RequestForm() {
                     تم اختيار الصورة: {selectedImage.name}
                   </p>
                 )}
+
+                <p className="text-yellow-300 text-sm mt-3 leading-7">
+                  سيتم حفظ اسم الصورة فقط مؤقتًا لحد ما نفعّل رفع الصور بالكامل.
+                </p>
               </div>
 
               <div className="bg-black border border-gray-800 rounded-2xl p-5">
@@ -383,7 +374,7 @@ function RequestForm() {
                 </div>
 
                 <div className="bg-black border border-gray-800 rounded-2xl p-4">
-                  صورة العطل هتساعد في فهم الحالة أسرع قبل التواصل.
+                  رفع الصورة متوقف مؤقتًا، لكن الطلب هيتبعت بشكل طبيعي.
                 </div>
               </div>
             </div>
