@@ -18,27 +18,27 @@ function RequestForm() {
 
   const getLocationErrorMessage = (error) => {
     if (!error) {
-      return "تعذر تحديد موقعك الآن. اكتب عنوانك يدويًا بالأسفل.";
+      return "تعذر تحديد موقعك الآن، لكن لا تقلق، يمكنك كتابة عنوانك يدويًا وسيتم تسجيل الطلب بشكل طبيعي.";
     }
 
     if (error.code === 1) {
-      return "تم رفض إذن الموقع. فعّل إذن الموقع من المتصفح أو اكتب عنوانك يدويًا بالأسفل.";
+      return "تم رفض إذن الموقع. يمكنك السماح بإذن الموقع من المتصفح، أو ببساطة كتابة عنوانك يدويًا وإكمال الطلب.";
     }
 
     if (error.code === 2) {
-      return "تعذر الوصول لموقعك حاليًا. تأكد من تشغيل خدمة الموقع والإنترنت أو اكتب عنوانك يدويًا بالأسفل.";
+      return "تعذر الوصول لموقعك حاليًا. اكتب عنوانك يدويًا بشكل واضح وسيتم استلام الطلب عادي.";
     }
 
     if (error.code === 3) {
-      return "استغرق تحديد الموقع وقتًا أطول من اللازم. حاول مرة أخرى أو اكتب عنوانك يدويًا بالأسفل.";
+      return "استغرق تحديد الموقع وقتًا أطول من اللازم. حاول مرة أخرى أو اكتب عنوانك يدويًا في الخانة بالأسفل.";
     }
 
-    return "تعذر تحديد موقعك الآن. تأكد من السماح بإذن الموقع في المتصفح أو اكتب عنوانك يدويًا بالأسفل.";
+    return "تعذر تحديد موقعك الآن. اكتب عنوانك يدويًا في الخانة بالأسفل وسيتم إرسال الطلب بشكل طبيعي.";
   };
 
   const getLocation = () => {
     if (!navigator.geolocation) {
-      setLocationMessage("المتصفح لا يدعم تحديد الموقع. اكتب عنوانك يدويًا بالأسفل.");
+      setLocationMessage("هذا المتصفح لا يدعم تحديد الموقع. اكتب عنوانك يدويًا بالأسفل وسيتم إرسال الطلب بشكل طبيعي.");
       return;
     }
 
@@ -156,7 +156,10 @@ function RequestForm() {
   };
 
   return (
-    <main className="min-h-screen bg-black text-white px-4 py-8 md:px-6 md:py-10" dir="rtl">
+    <main
+      className="min-h-screen bg-black text-white px-4 py-8 md:px-6 md:py-10"
+      dir="rtl"
+    >
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-8">
           <p className="text-red-500 font-bold mb-3">RoadFix</p>
@@ -270,9 +273,12 @@ function RequestForm() {
               </div>
 
               <div className="bg-black border border-gray-800 rounded-2xl p-5">
-                <h3 className="text-xl font-bold text-red-400 mb-4">
-                  الموقع
-                </h3>
+                <div className="flex items-center justify-between gap-4 mb-4">
+                  <h3 className="text-xl font-bold text-red-400">الموقع</h3>
+                  <span className="text-xs md:text-sm text-gray-400">
+                    GPS أو عنوان يدوي
+                  </span>
+                </div>
 
                 <button
                   type="button"
@@ -292,20 +298,29 @@ function RequestForm() {
                 )}
 
                 {locationMessage && !location && (
-                  <div className="mt-4 bg-gray-900 border border-gray-700 rounded-xl p-4 text-sm text-yellow-300 leading-7">
-                    {locationMessage}
+                  <div className="mt-4 bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-4">
+                    <p className="text-yellow-300 font-bold mb-2">
+                      تعذر تحديد الموقع تلقائيًا
+                    </p>
+                    <p className="text-sm text-yellow-100 leading-7">
+                      {locationMessage}
+                    </p>
                   </div>
                 )}
 
-                <div className="mt-4">
-                  <label className="block text-sm text-gray-300 mb-2">
-                    أو اكتب عنوانك يدويًا
+                <div className="mt-4 bg-gray-950 border border-dashed border-gray-700 rounded-2xl p-4">
+                  <label className="block text-sm text-gray-300 mb-2 font-bold">
+                    اكتب عنوانك يدويًا
                   </label>
+                  <p className="text-xs text-gray-400 mb-3 leading-6">
+                    اكتب المنطقة والشارع وأقرب علامة مميزة، مثال:
+                    مدينة نصر - عباس العقاد - أمام ماكدونالدز
+                  </p>
                   <textarea
                     value={manualAddress}
                     onChange={(e) => setManualAddress(e.target.value)}
                     placeholder="مثال: مدينة نصر - شارع عباس العقاد - أمام..."
-                    className="w-full p-3 rounded-xl bg-gray-950 border border-gray-700 text-white h-24 outline-none focus:border-red-500"
+                    className="w-full p-3 rounded-xl bg-black border border-gray-700 text-white h-28 outline-none focus:border-red-500"
                   />
                 </div>
               </div>
@@ -370,11 +385,12 @@ function RequestForm() {
                 </div>
 
                 <div className="bg-black border border-gray-800 rounded-2xl p-4">
-                  لو تحديد الموقع ما اشتغلش، اكتب عنوان واضح بالتفصيل.
+                  لو تحديد الموقع ما اشتغلش، اكتب عنوان واضح بالتفصيل والطلب
+                  هيتسجل عادي.
                 </div>
 
                 <div className="bg-black border border-gray-800 rounded-2xl p-4">
-                  رفع الصورة متوقف مؤقتًا، لكن الطلب هيتبعت بشكل طبيعي.
+                  رفع الصورة متوقف مؤقتًا، لكن الطلب بيتبعت بشكل طبيعي.
                 </div>
               </div>
             </div>
@@ -382,8 +398,8 @@ function RequestForm() {
             <div className="bg-red-600 rounded-3xl p-5 shadow-xl">
               <h3 className="text-xl font-bold mb-3">RoadFix</h3>
               <p className="text-white/90 leading-8 text-sm">
-                بعد إرسال الطلب، سيتم تسجيله مباشرة لمتابعته من الداشبورد وتحديث
-                حالته.
+                حتى لو تحديد الموقع التلقائي لم يعمل، يمكنك كتابة العنوان يدويًا
+                وسيتم استقبال الطلب بشكل طبيعي.
               </p>
             </div>
           </div>
