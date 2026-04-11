@@ -97,6 +97,10 @@ function RequestForm() {
     return 100;
   };
 
+  const generateRequestNumber = () => {
+    return `RF-${Date.now()}`;
+  };
+
   const price = getServicePrice(service);
 
   const handleSubmit = async (e) => {
@@ -124,7 +128,10 @@ function RequestForm() {
     try {
       setSubmitting(true);
 
+      const requestNumber = generateRequestNumber();
+
       await addDoc(collection(db, "requests"), {
+        requestNumber,
         service,
         name,
         phone,
@@ -143,7 +150,7 @@ function RequestForm() {
         createdAt: new Date(),
       });
 
-      alert("تم إرسال الطلب بنجاح 🚗");
+      alert(`تم إرسال الطلب بنجاح 🚗\nرقم الطلب: ${requestNumber}`);
       e.target.reset();
       setLocation(null);
       setSelectedImage(null);
