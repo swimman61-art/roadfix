@@ -38,7 +38,9 @@ function RequestForm() {
 
   const getLocation = () => {
     if (!navigator.geolocation) {
-      setLocationMessage("هذا المتصفح لا يدعم تحديد الموقع. اكتب عنوانك يدويًا بالأسفل وسيتم إرسال الطلب بشكل طبيعي.");
+      setLocationMessage(
+        "هذا المتصفح لا يدعم تحديد الموقع. اكتب عنوانك يدويًا بالأسفل وسيتم إرسال الطلب بشكل طبيعي."
+      );
       return;
     }
 
@@ -308,6 +310,25 @@ function RequestForm() {
                   </div>
                 )}
 
+                <div className="mt-4 bg-blue-500/10 border border-blue-500/30 rounded-2xl p-4">
+                  <p className="text-blue-300 font-bold mb-2">
+                    بديل سريع لو GPS لم يعمل
+                  </p>
+                  <p className="text-sm text-blue-100 leading-7 mb-4">
+                    يمكنك فتح خرائط Google، معرفة موقعك أو أقرب عنوان، ثم كتابة
+                    العنوان يدويًا في الخانة بالأسفل.
+                  </p>
+
+                  <a
+                    href="https://maps.google.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-bold transition"
+                  >
+                    فتح Google Maps
+                  </a>
+                </div>
+
                 <div className="mt-4 bg-gray-950 border border-dashed border-gray-700 rounded-2xl p-4">
                   <label className="block text-sm text-gray-300 mb-2 font-bold">
                     اكتب عنوانك يدويًا
@@ -399,7 +420,7 @@ function RequestForm() {
               <h3 className="text-xl font-bold mb-3">RoadFix</h3>
               <p className="text-white/90 leading-8 text-sm">
                 حتى لو تحديد الموقع التلقائي لم يعمل، يمكنك كتابة العنوان يدويًا
-                وسيتم استقبال الطلب بشكل طبيعي.
+                أو فتح Google Maps، وسيتم استقبال الطلب بشكل طبيعي.
               </p>
             </div>
           </div>
