@@ -88,20 +88,9 @@ function RequestForm() {
     );
   };
 
-  const getServicePrice = (serviceName) => {
-    if (serviceName === "بطارية") return 150;
-    if (serviceName === "كاوتش") return 120;
-    if (serviceName === "بنزين") return 100;
-    if (serviceName === "كهرباء") return 180;
-    if (serviceName === "عطل") return 200;
-    return 100;
-  };
-
   const generateRequestNumber = () => {
     return `RF-${Date.now()}`;
   };
-
-  const price = getServicePrice(service);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -141,7 +130,6 @@ function RequestForm() {
         carYear,
         plateNumber,
         paymentMethod,
-        price,
         status: "new",
         location: location || null,
         manualAddress: manualAddress.trim() || null,
@@ -183,7 +171,7 @@ function RequestForm() {
 
         <div className="grid lg:grid-cols-3 gap-6 items-start">
           <div className="lg:col-span-2 bg-gray-900 border border-gray-800 rounded-3xl p-5 md:p-8 shadow-2xl">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 pb-6 border-b border-gray-800">
+            <div className="flex flex-col gap-4 mb-6 pb-6 border-b border-gray-800">
               <div>
                 <h2 className="text-2xl font-bold">بيانات الطلب</h2>
                 <p className="text-gray-400 mt-2">
@@ -191,10 +179,10 @@ function RequestForm() {
                 </p>
               </div>
 
-              <div className="bg-black border border-gray-800 rounded-2xl px-5 py-4 text-center">
-                <p className="text-sm text-gray-400 mb-1">سعر الكشف</p>
-                <p className="text-2xl font-extrabold text-yellow-400">
-                  {price} جنيه
+              <div className="bg-black border border-gray-800 rounded-2xl px-5 py-4">
+                <p className="text-sm text-gray-400 mb-2">معلومة مهمة</p>
+                <p className="text-base md:text-lg font-bold text-yellow-400 leading-8">
+                  يتم تحديد تكلفة المعاينة والخدمة حسب موقع العميل وطبيعة الحالة.
                 </p>
               </div>
             </div>

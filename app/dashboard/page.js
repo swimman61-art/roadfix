@@ -68,6 +68,32 @@ export default function DashboardPage() {
     }
   };
 
+  const formatDateTime = (createdAt) => {
+    if (!createdAt) return "غير متوفر";
+
+    try {
+      let date;
+
+      if (createdAt?.toDate) {
+        date = createdAt.toDate();
+      } else {
+        date = new Date(createdAt);
+      }
+
+      if (isNaN(date.getTime())) return "غير متوفر";
+
+      return new Intl.DateTimeFormat("ar-EG", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      }).format(date);
+    } catch (error) {
+      return "غير متوفر";
+    }
+  };
+
   useEffect(() => {
     fetchRequests();
     const interval = setInterval(fetchRequests, 5000);
@@ -155,7 +181,10 @@ export default function DashboardPage() {
   };
 
   return (
-    <main className="min-h-screen bg-black text-white px-4 py-8 md:px-6 md:py-10" dir="rtl">
+    <main
+      className="min-h-screen bg-black text-white px-4 py-8 md:px-6 md:py-10"
+      dir="rtl"
+    >
       <div className="max-w-7xl mx-auto">
         <div className="mb-8 text-center">
           <p className="text-red-500 font-bold mb-3">RoadFix Dashboard</p>
@@ -253,12 +282,17 @@ export default function DashboardPage() {
                         <h2 className="text-xl md:text-2xl font-bold">
                           {request.name || "طلب جديد"}
                         </h2>
+
                         <p className="text-gray-400 text-sm mt-1">
                           رقم الموبايل: {request.phone || "غير محدد"}
                         </p>
 
                         <p className="text-red-400 text-sm font-bold mt-2">
                           رقم الطلب: {request.requestNumber || "غير موجود"}
+                        </p>
+
+                        <p className="text-gray-400 text-sm mt-2">
+                          تاريخ الطلب: {formatDateTime(request.createdAt)}
                         </p>
                       </div>
 

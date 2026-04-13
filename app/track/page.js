@@ -47,10 +47,38 @@ export default function TrackPage() {
     return "تم التنفيذ";
   };
 
+  const formatDateTime = (createdAt) => {
+    if (!createdAt) return "غير متوفر";
+
+    try {
+      let date;
+
+      if (createdAt?.toDate) {
+        date = createdAt.toDate();
+      } else {
+        date = new Date(createdAt);
+      }
+
+      if (isNaN(date.getTime())) return "غير متوفر";
+
+      return new Intl.DateTimeFormat("ar-EG", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      }).format(date);
+    } catch (error) {
+      return "غير متوفر";
+    }
+  };
+
   return (
-    <main className="min-h-screen bg-black text-white flex items-center justify-center px-4" dir="rtl">
-      <div className="w-full max-w-xl bg-gray-900 border border-gray-800 rounded-3xl p-6 shadow-2xl">
-        
+    <main
+      className="min-h-screen bg-black text-white flex items-center justify-center px-4 py-10"
+      dir="rtl"
+    >
+      <div className="w-full max-w-2xl bg-gray-900 border border-gray-800 rounded-3xl p-6 shadow-2xl">
         <h1 className="text-3xl font-bold text-center mb-6">
           تتبع الطلب 🚗
         </h1>
@@ -78,7 +106,6 @@ export default function TrackPage() {
 
         {requestData && (
           <div className="mt-6 space-y-4">
-
             <div className="bg-black border border-gray-800 rounded-xl p-4">
               <p className="text-gray-400">رقم الطلب</p>
               <p className="font-bold">{requestData.requestNumber}</p>
@@ -88,6 +115,13 @@ export default function TrackPage() {
               <p className="text-gray-400">الحالة</p>
               <p className="font-bold text-yellow-400">
                 {getStatusText(requestData.status)}
+              </p>
+            </div>
+
+            <div className="bg-black border border-gray-800 rounded-xl p-4">
+              <p className="text-gray-400">تاريخ الطلب</p>
+              <p className="font-bold">
+                {formatDateTime(requestData.createdAt)}
               </p>
             </div>
 
@@ -114,7 +148,9 @@ export default function TrackPage() {
             <div className="bg-black border border-gray-800 rounded-xl p-4">
               <p className="text-gray-400">بيانات العربية</p>
               <p>
-                {requestData.carBrand} - {requestData.carModel} - {requestData.carYear}
+                {requestData.carBrand || "غير متوفر"} -{" "}
+                {requestData.carModel || "غير متوفر"} -{" "}
+                {requestData.carYear || "غير متوفر"}
               </p>
             </div>
 
@@ -124,7 +160,6 @@ export default function TrackPage() {
                 <p>{requestData.manualAddress}</p>
               </div>
             )}
-
           </div>
         )}
       </div>
