@@ -4,7 +4,7 @@ import { getStorage } from "firebase/storage";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "PASTE_YOUR_API_KEY",
+  apiKey: "AIzaSyA-D72BLG2CoBsIlfZybuvJucyo3LKcTMg",
   authDomain: "roadfix-ef1a4.firebaseapp.com",
   projectId: "roadfix-ef1a4",
   storageBucket: "roadfix-ef1a4.appspot.com",

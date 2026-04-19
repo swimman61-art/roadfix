@@ -1,20 +1,43 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { db } from "../firebase";
 import { collection, addDoc } from "firebase/firestore";
 
+const SERVICE_OPTIONS = [
+  "بطارية",
+  "كاوتش",
+  "بنزين",
+  "كهرباء",
+  "ميكانيكا",
+  "صيانة دورية",
+  "عطل",
+];
+
 function RequestForm() {
   const searchParams = useSearchParams();
-  const service = searchParams.get("service") || "";
+  const selectedServiceFromUrl = searchParams.get("service") || "";
 
+  const [service, setService] = useState("");
   const [location, setLocation] = useState(null);
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [manualAddress, setManualAddress] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [locationMessage, setLocationMessage] = useState("");
+  const [formMessage, setFormMessage] = useState({ type: "", text: "" });
+  const [successRequestNumber, setSuccessRequestNumber] = useState("");
+  const [imagePreview, setImagePreview] = useState("");
+
+  useEffect(() => {
+    if (
+      selectedServiceFromUrl &&
+      SERVICE_OPTIONS.includes(selectedServiceFromUrl)
+    ) {
+      setService(selectedServiceFromUrl);
+    }
+  }, [selectedServiceFromUrl]);
 
   const getLocationErrorMessage = (error) => {
     if (!error) {
@@ -46,6 +69,7 @@ function RequestForm() {
 
     setLoadingLocation(true);
     setLocationMessage("");
+    setFormMessage({ type: "", text: "" });
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -92,25 +116,94 @@ function RequestForm() {
     return `RF-${Date.now()}`;
   };
 
+  const validateEgyptPhone = (phone) => {
+    const normalized = phone.replace(/\s+/g, "");
+    return /^01[0-2,5][0-9]{8}$/.test(normalized);
+  };
+
+  const validateCarYear = (year) => {
+    if (!year) return true;
+    const numericYear = Number(year);
+    const currentYear = new Date().getFullYear() + 1;
+    return numericYear >= 1950 && numericYear <= currentYear;
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0] || null;
+    setSelectedImage(file);
+
+    if (file) {
+      setImagePreview(URL.createObjectURL(file));
+    } else {
+      setImagePreview("");
+    }
+  };
+
+  const messageBoxClass = useMemo(() => {
+    if (formMessage.type === "success") {
+      return "mb-6 bg-green-500/10 border border-green-500/30 rounded-2xl p-4 text-green-300";
+    }
+
+    if (formMessage.type === "error") {
+      return "mb-6 bg-red-500/10 border border-red-500/30 rounded-2xl p-4 text-red-300";
+    }
+
+    return "";
+  }, [formMessage.type]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const name = e.target.name.value;
-    const phone = e.target.phone.value;
-    const description = e.target.description.value;
-    const carBrand = e.target.carBrand.value;
-    const carModel = e.target.carModel.value;
-    const carYear = e.target.carYear.value;
-    const plateNumber = e.target.plateNumber.value;
-    const paymentMethod = e.target.paymentMethod.value;
+    setFormMessage({ type: "", text: "" });
+    setSuccessRequestNumber("");
+
+    const form = e.target;
+    const name = form.name.value.trim();
+    const phone = form.phone.value.trim();
+    const description = form.description.value.trim();
+    const carBrand = form.carBrand.value.trim();
+    const carModel = form.carModel.value.trim();
+    const carYear = form.carYear.value.trim();
+    const plateNumber = form.plateNumber.value.trim();
+    const paymentMethod = form.paymentMethod.value;
+
+    if (!service) {
+      setFormMessage({
+        type: "error",
+        text: "من فضلك اختر نوع الخدمة أولًا.",
+      });
+      return;
+    }
 
     if (!name || !phone || !description) {
-      alert("من فضلك املى البيانات الأساسية");
+      setFormMessage({
+        type: "error",
+        text: "من فضلك املى الاسم ورقم الموبايل ووصف العطل.",
+      });
+      return;
+    }
+
+    if (!validateEgyptPhone(phone)) {
+      setFormMessage({
+        type: "error",
+        text: "من فضلك اكتب رقم موبايل مصري صحيح مكوّن من 11 رقم.",
+      });
+      return;
+    }
+
+    if (!validateCarYear(carYear)) {
+      setFormMessage({
+        type: "error",
+        text: "من فضلك اكتب سنة صنع صحيحة.",
+      });
       return;
     }
 
     if (!location && !manualAddress.trim()) {
-      alert("حدد موقعك أو اكتب عنوانك يدويًا");
+      setFormMessage({
+        type: "error",
+        text: "حدد موقعك أو اكتب عنوانك يدويًا قبل إرسال الطلب.",
+      });
       return;
     }
 
@@ -125,10 +218,10 @@ function RequestForm() {
         name,
         phone,
         description,
-        carBrand,
-        carModel,
-        carYear,
-        plateNumber,
+        carBrand: carBrand || null,
+        carModel: carModel || null,
+        carYear: carYear || null,
+        plateNumber: plateNumber || null,
         paymentMethod,
         status: "new",
         location: location || null,
@@ -138,15 +231,25 @@ function RequestForm() {
         createdAt: new Date(),
       });
 
-      alert(`تم إرسال الطلب بنجاح 🚗\nرقم الطلب: ${requestNumber}`);
-      e.target.reset();
+      setSuccessRequestNumber(requestNumber);
+      setFormMessage({
+        type: "success",
+        text: "تم إرسال الطلب بنجاح ✅ احتفظ برقم الطلب لمتابعة الحالة.",
+      });
+
+      form.reset();
       setLocation(null);
       setSelectedImage(null);
       setManualAddress("");
       setLocationMessage("");
+      setImagePreview("");
+      setService(selectedServiceFromUrl || "");
     } catch (error) {
       console.error(error);
-      alert("حصل خطأ أثناء إرسال الطلب ❌");
+      setFormMessage({
+        type: "error",
+        text: "حصل خطأ أثناء إرسال الطلب. حاول مرة أخرى.",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -168,6 +271,32 @@ function RequestForm() {
             وسيتم تسجيل الطلب فورًا.
           </p>
         </div>
+
+        {formMessage.text && (
+          <div className={messageBoxClass}>
+            <p className="font-bold">{formMessage.text}</p>
+
+            {successRequestNumber && (
+              <div className="mt-3 bg-black/40 border border-green-500/20 rounded-xl p-4">
+                <p className="text-sm text-gray-300 mb-1">رقم الطلب</p>
+                <p className="text-xl font-extrabold text-white">
+                  {successRequestNumber}
+                </p>
+
+                <p className="text-sm text-gray-400 mt-2 mb-4">
+                  يمكنك استخدامه لاحقًا في صفحة التتبع.
+                </p>
+
+                <a
+                  href={`/track?number=${successRequestNumber}`}
+                  className="inline-block bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-xl font-bold transition"
+                >
+                  تتبع الطلب الآن 🔍
+                </a>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="grid lg:grid-cols-3 gap-6 items-start">
           <div className="lg:col-span-2 bg-gray-900 border border-gray-800 rounded-3xl p-5 md:p-8 shadow-2xl">
@@ -198,6 +327,25 @@ function RequestForm() {
             <form className="space-y-6" onSubmit={handleSubmit}>
               <div className="bg-black border border-gray-800 rounded-2xl p-5">
                 <h3 className="text-xl font-bold text-red-400 mb-4">
+                  نوع الخدمة
+                </h3>
+
+                <select
+                  value={service}
+                  onChange={(e) => setService(e.target.value)}
+                  className="w-full p-3 rounded-xl bg-gray-950 border border-gray-700 text-white outline-none focus:border-red-500"
+                >
+                  <option value="">اختر نوع الخدمة</option>
+                  {SERVICE_OPTIONS.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="bg-black border border-gray-800 rounded-2xl p-5">
+                <h3 className="text-xl font-bold text-red-400 mb-4">
                   بيانات العميل
                 </h3>
 
@@ -219,7 +367,8 @@ function RequestForm() {
                     </label>
                     <input
                       name="phone"
-                      placeholder="اكتب رقم الموبايل"
+                      inputMode="numeric"
+                      placeholder="مثال: 01012345678"
                       className="w-full p-3 rounded-xl bg-gray-950 border border-gray-700 text-white outline-none focus:border-red-500"
                     />
                   </div>
@@ -257,6 +406,7 @@ function RequestForm() {
 
                   <input
                     name="carYear"
+                    inputMode="numeric"
                     placeholder="سنة الصنع"
                     className="w-full p-3 rounded-xl bg-gray-950 border border-gray-700 text-white outline-none focus:border-red-500"
                   />
@@ -280,7 +430,8 @@ function RequestForm() {
                 <button
                   type="button"
                   onClick={getLocation}
-                  className="w-full bg-yellow-500 hover:bg-yellow-600 p-3 rounded-xl font-bold text-black transition"
+                  disabled={loadingLocation}
+                  className="w-full bg-yellow-500 hover:bg-yellow-600 p-3 rounded-xl font-bold text-black transition disabled:opacity-60"
                 >
                   {loadingLocation ? "جارٍ تحديد الموقع..." : "تحديد موقعي 📍"}
                 </button>
@@ -349,7 +500,7 @@ function RequestForm() {
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={(e) => setSelectedImage(e.target.files[0])}
+                  onChange={handleImageChange}
                   className="w-full p-3 bg-gray-950 border border-gray-700 rounded-xl"
                 />
 
@@ -357,6 +508,16 @@ function RequestForm() {
                   <p className="text-green-400 text-sm mt-3">
                     تم اختيار الصورة: {selectedImage.name}
                   </p>
+                )}
+
+                {imagePreview && (
+                  <div className="mt-4">
+                    <img
+                      src={imagePreview}
+                      alt="معاينة الصورة"
+                      className="w-full max-h-72 object-cover rounded-2xl border border-gray-800"
+                    />
+                  </div>
                 )}
 
                 <p className="text-yellow-300 text-sm mt-3 leading-7">
@@ -382,7 +543,7 @@ function RequestForm() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full bg-red-600 hover:bg-red-700 p-4 rounded-2xl font-bold text-lg disabled:opacity-60 transition"
+                className="w-full bg-red-600 hover:bg-red-700 p-4 rounded-2xl font-bold text-lg disabled:opacity-60 disabled:cursor-not-allowed transition"
               >
                 {submitting ? "جارٍ إرسال الطلب..." : "تأكيد الطلب"}
               </button>

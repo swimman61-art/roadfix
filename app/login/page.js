@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
 import { auth } from "../firebase";
 
 export default function LoginPage() {
@@ -11,6 +11,20 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        router.replace("/dashboard");
+        return;
+      }
+
+      setCheckingAuth(false);
+    });
+
+    return () => unsubscribe();
+  }, [router]);
 
   const getArabicErrorMessage = (errorCode) => {
     switch (errorCode) {
@@ -47,7 +61,7 @@ export default function LoginPage() {
       await signInWithEmailAndPassword(auth, email.trim(), password);
 
       alert("تم تسجيل الدخول بنجاح ✅");
-      router.push("/dashboard");
+      router.replace("/dashboard");
     } catch (error) {
       console.error("Firebase login error:", error);
       alert(getArabicErrorMessage(error.code));
@@ -55,6 +69,21 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
+  if (checkingAuth) {
+    return (
+      <main
+        className="min-h-screen bg-black text-white flex items-center justify-center px-4"
+        dir="rtl"
+      >
+        <div className="text-center">
+          <p className="text-red-500 font-bold mb-2">RoadFix Admin</p>
+          <h1 className="text-2xl font-extrabold mb-3">جارٍ التحميل...</h1>
+          <p className="text-gray-400">من فضلك انتظر لحظة</p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main
