@@ -1,18 +1,26 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { db } from "../firebase";
 import { collection, getDocs } from "firebase/firestore";
 
 export default function TrackPage() {
+  const searchParams = useSearchParams();
+
   const [requestNumber, setRequestNumber] = useState("");
   const [requestData, setRequestData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const handleSearch = async () => {
-    const trimmedRequestNumber = requestNumber.trim().toUpperCase();
+  const handleSearch = async (customRequestNumber) => {
+    const valueToSearch =
+      typeof customRequestNumber === "string"
+        ? customRequestNumber
+        : requestNumber;
+
+    const trimmedRequestNumber = valueToSearch.trim().toUpperCase();
 
     if (!trimmedRequestNumber) {
       setErrorMessage("من فضلك اكتب رقم الطلب أولًا.");
@@ -52,6 +60,18 @@ export default function TrackPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const numberFromUrl = searchParams.get("number");
+
+    if (numberFromUrl) {
+      const cleanedNumber = numberFromUrl.trim().toUpperCase();
+      setRequestNumber(cleanedNumber);
+
+      // بحث تلقائي مباشر
+      handleSearch(cleanedNumber);
+    }
+  }, [searchParams]);
 
   const getStatusText = (status) => {
     if ((status || "new") === "new") return "جديد";
@@ -153,7 +173,7 @@ export default function TrackPage() {
               />
 
               <button
-                onClick={handleSearch}
+                onClick={() => handleSearch()}
                 disabled={loading}
                 className="bg-red-600 hover:bg-red-700 px-6 py-4 rounded-2xl font-bold disabled:opacity-60 disabled:cursor-not-allowed transition"
               >
