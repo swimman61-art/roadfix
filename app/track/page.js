@@ -1,14 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { db } from "../firebase";
 import { collection, getDocs } from "firebase/firestore";
 
 export default function TrackPage() {
-  const searchParams = useSearchParams();
-  const autoSearchedRef = useRef(false);
-
   const [requestNumber, setRequestNumber] = useState("");
   const [requestData, setRequestData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -63,22 +59,17 @@ export default function TrackPage() {
   };
 
   useEffect(() => {
-    const numberFromUrl = searchParams.get("number");
+    if (typeof window === "undefined") return;
 
-    if (!numberFromUrl) return;
+    const params = new URLSearchParams(window.location.search);
+    const numberFromUrl = params.get("number");
 
-    const cleanedNumber = numberFromUrl.trim().toUpperCase();
-    setRequestNumber(cleanedNumber);
-    autoSearchedRef.current = false;
-  }, [searchParams]);
-
-  useEffect(() => {
-    if (!requestNumber) return;
-    if (autoSearchedRef.current) return;
-
-    autoSearchedRef.current = true;
-    handleSearch(requestNumber);
-  }, [requestNumber]);
+    if (numberFromUrl) {
+      const cleanedNumber = numberFromUrl.trim().toUpperCase();
+      setRequestNumber(cleanedNumber);
+      handleSearch(cleanedNumber);
+    }
+  }, []);
 
   const getStatusText = (status) => {
     if ((status || "new") === "new") return "جديد";
@@ -170,10 +161,7 @@ export default function TrackPage() {
                 type="text"
                 placeholder="اكتب رقم الطلب مثل: RF-1740000000000"
                 value={requestNumber}
-                onChange={(e) => {
-                  setRequestNumber(e.target.value);
-                  autoSearchedRef.current = true;
-                }}
+                onChange={(e) => setRequestNumber(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     handleSearch();
