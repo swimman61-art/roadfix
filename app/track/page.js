@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { db } from "../firebase";
 import { collection, getDocs } from "firebase/firestore";
 
 export default function TrackPage() {
   const searchParams = useSearchParams();
+  const autoSearchedRef = useRef(false);
 
   const [requestNumber, setRequestNumber] = useState("");
   const [requestData, setRequestData] = useState(null);
@@ -64,14 +65,20 @@ export default function TrackPage() {
   useEffect(() => {
     const numberFromUrl = searchParams.get("number");
 
-    if (numberFromUrl) {
-      const cleanedNumber = numberFromUrl.trim().toUpperCase();
-      setRequestNumber(cleanedNumber);
+    if (!numberFromUrl) return;
 
-      // بحث تلقائي مباشر
-      handleSearch(cleanedNumber);
-    }
+    const cleanedNumber = numberFromUrl.trim().toUpperCase();
+    setRequestNumber(cleanedNumber);
+    autoSearchedRef.current = false;
   }, [searchParams]);
+
+  useEffect(() => {
+    if (!requestNumber) return;
+    if (autoSearchedRef.current) return;
+
+    autoSearchedRef.current = true;
+    handleSearch(requestNumber);
+  }, [requestNumber]);
 
   const getStatusText = (status) => {
     if ((status || "new") === "new") return "جديد";
@@ -163,7 +170,10 @@ export default function TrackPage() {
                 type="text"
                 placeholder="اكتب رقم الطلب مثل: RF-1740000000000"
                 value={requestNumber}
-                onChange={(e) => setRequestNumber(e.target.value)}
+                onChange={(e) => {
+                  setRequestNumber(e.target.value);
+                  autoSearchedRef.current = true;
+                }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     handleSearch();
