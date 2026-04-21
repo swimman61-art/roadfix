@@ -10,6 +10,7 @@ export default function TrackPage() {
   const [loading, setLoading] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [urlNumber, setUrlNumber] = useState("");
 
   const handleSearch = async (customRequestNumber) => {
     const valueToSearch =
@@ -61,13 +62,17 @@ export default function TrackPage() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const params = new URLSearchParams(window.location.search);
-    const numberFromUrl = params.get("number");
+    const fullUrl = new URL(window.location.href);
+    const numberFromUrl = fullUrl.searchParams.get("number");
 
     if (numberFromUrl) {
       const cleanedNumber = numberFromUrl.trim().toUpperCase();
+      setUrlNumber(cleanedNumber);
       setRequestNumber(cleanedNumber);
-      handleSearch(cleanedNumber);
+
+      setTimeout(() => {
+        handleSearch(cleanedNumber);
+      }, 300);
     }
   }, []);
 
@@ -151,6 +156,14 @@ export default function TrackPage() {
         </div>
 
         <div className="bg-gray-900 border border-gray-800 rounded-3xl p-6 md:p-8 shadow-2xl">
+          {urlNumber && (
+            <div className="mb-4 bg-blue-500/10 border border-blue-500/30 rounded-2xl p-4">
+              <p className="text-blue-300 font-bold">
+                تم قراءة رقم الطلب من الرابط: {urlNumber}
+              </p>
+            </div>
+          )}
+
           <div className="mb-6">
             <label className="block mb-3 text-sm text-gray-300 font-bold">
               رقم الطلب
