@@ -5,12 +5,12 @@ import { useRouter } from "next/navigation";
 import { db, auth } from "../firebase";
 import {
   collection,
-  getDocs,
   query,
   orderBy,
   doc,
   updateDoc,
   deleteDoc,
+  onSnapshot,
 } from "firebase/firestore";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 
@@ -42,34 +42,6 @@ export default function DashboardPage() {
 
   const previousCountRef = useRef(0);
   const firstLoadRef = useRef(true);
-
-  const fetchRequests = async () => {
-    try {
-      const q = query(
-        collection(db, "requests"),
-        orderBy("createdAt", "desc")
-      );
-
-      const querySnapshot = await getDocs(q);
-
-      const data = querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-
-      if (!firstLoadRef.current && data.length > previousCountRef.current) {
-        setShowAlert(true);
-        setTimeout(() => setShowAlert(false), 5000);
-      }
-
-      previousCountRef.current = data.length;
-      firstLoadRef.current = false;
-
-      setRequests(data);
-    } catch (error) {
-      console.error("Error fetching requests:", error);
-    }
-  };
 
   const updateStatus = async (id, currentStatus) => {
     let newStatus = "new";
@@ -185,10 +157,38 @@ export default function DashboardPage() {
   useEffect(() => {
     if (authLoading || !adminUser) return;
 
-    fetchRequests();
-    const interval = setInterval(fetchRequests, 5000);
+    const q = query(
+      collection(db, "requests"),
+      orderBy("createdAt", "desc")
+    );
 
-    return () => clearInterval(interval);
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const data = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        if (!firstLoadRef.current && data.length > previousCountRef.current) {
+          setShowAlert(true);
+
+          setTimeout(() => {
+            setShowAlert(false);
+          }, 5000);
+        }
+
+        previousCountRef.current = data.length;
+        firstLoadRef.current = false;
+
+        setRequests(data);
+      },
+      (error) => {
+        console.error("Realtime listener error:", error);
+      }
+    );
+
+    return () => unsubscribe();
   }, [authLoading, adminUser]);
 
   const filteredRequests = useMemo(() => {
@@ -357,6 +357,9 @@ export default function DashboardPage() {
             </p>
             <p className="text-sm text-gray-500 mt-2">
               مسجل الدخول: {adminUser.email}
+            </p>
+            <p className="text-xs text-green-400 mt-2">
+              Realtime mode شغال الآن ✅
             </p>
           </div>
 
