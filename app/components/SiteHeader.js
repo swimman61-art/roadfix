@@ -104,3 +104,6 @@ export default function SiteHeader() {
     </header>
   );
 }
+<Link href="/about" className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-white/5 border border-white/10 hover:bg-white/10 transition">
+  من نحن
+</Link>
