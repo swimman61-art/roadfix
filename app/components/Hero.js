@@ -18,7 +18,7 @@ export default function Hero() {
           <div>
             <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur border border-white/20 rounded-full px-4 py-2 text-sm mb-8">
               <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-              <span className="text-green-300 font-bold">متاح دلوقتي في القاهرة</span>
+              <span className="text-green-300 font-bold">متاح دلوقتي في القاهرة والجيزة</span>
             </div>
 
             <h1 className="text-5xl md:text-7xl font-black leading-[1.05] mb-6 tracking-tight">
@@ -49,7 +49,7 @@ export default function Hero() {
             <div className="flex flex-wrap gap-6 text-sm text-white/50">
               <span>⭐ تقييم 4.9/5</span>
               <span>✅ +500 طلب مكتمل</span>
-              <span>⚡ 15 دقيقة متوسط وصول</span>
+              <span>⚡ بنوصلك في أسرع وقت ممكن</span>
             </div>
           </div>
 
@@ -80,7 +80,7 @@ export default function Hero() {
               </div>
 
               <div className="grid grid-cols-3 gap-3">
-                {[{ num: "+500", lbl: "طلب" }, { num: "15د", lbl: "وصول" }, { num: "24/7", lbl: "متاح" }].map((s) => (
+                {[{ num: "+500", lbl: "طلب" }, { num: "أسرع", lbl: "وصول" }, { num: "24/7", lbl: "متاح" }].map((s) => (
                   <div key={s.lbl} className="bg-white/5 rounded-xl p-3 text-center">
                     <p className="text-xl font-black text-red-400">{s.num}</p>
                     <p className="text-xs text-white/50 mt-0.5">{s.lbl}</p>

@@ -3,7 +3,7 @@ import Link from "next/link";
 const comparison = [
   { feature: "بيجي لموقعك", roadfix: true, garage: false },
   { feature: "متاح 24/7", roadfix: true, garage: false },
-  { feature: "وقت الانتظار", roadfix: "15 دقيقة", garage: "ساعات" },
+  { feature: "وقت الانتظار", roadfix: "أسرع وقت", garage: "ساعات" },
   { feature: "سعر محدد مسبقاً", roadfix: true, garage: false },
   { feature: "تتبع الطلب", roadfix: true, garage: false },
   { feature: "مفيش زحمة ورش", roadfix: true, garage: false },

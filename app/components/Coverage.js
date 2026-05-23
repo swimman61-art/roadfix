@@ -1,13 +1,13 @@
 const cities = [
   { city: "القاهرة — كل المناطق", status: "متاح الآن ✅", color: "bg-green-50 border-green-200 text-green-700" },
-  { city: "الجيزة", status: "قريباً 🔜", color: "bg-yellow-50 border-yellow-200 text-yellow-700" },
+  { city: "الجيزة — كل المناطق", status: "متاح الآن ✅", color: "bg-green-50 border-green-200 text-green-700" },
   { city: "الإسكندرية", status: "قريباً 🔜", color: "bg-yellow-50 border-yellow-200 text-yellow-700" },
   { city: "باقي المحافظات", status: "في الخطة 📋", color: "bg-gray-100 border-gray-200 text-gray-500" },
 ];
 
 const stats = [
   { num: "+500", lbl: "طلب مكتمل", icon: "✅" },
-  { num: "15 دقيقة", lbl: "متوسط الوصول", icon: "⚡" },
+  { num: "أسرع وقت", lbl: "بنوصلك بسرعة", icon: "⚡" },
   { num: "98%", lbl: "رضا العملاء", icon: "⭐" },
   { num: "24/7", lbl: "خدمة مستمرة", icon: "🕐" },
 ];
@@ -20,11 +20,11 @@ export default function Coverage() {
           <div>
             <span className="bg-red-50 text-red-500 font-bold text-sm px-4 py-2 rounded-full">التغطية</span>
             <h2 className="text-4xl md:text-5xl font-black mt-4 mb-6">
-              دلوقتي في القاهرة
+              دلوقتي في القاهرة والجيزة
               <span className="block text-red-500">وبنكبر معاك</span>
             </h2>
             <p className="text-gray-500 text-lg leading-relaxed mb-8">
-              بدأنا بالقاهرة وبنغطي كل مناطقها. وعيننا على المستقبل — هنوصل لكل مصر قريباً.
+              بدأنا بالقاهرة والجيزة وبنغطي كل مناطقهم. وعيننا على المستقبل — هنوصل لكل مصر قريباً.
             </p>
             <div className="space-y-3">
               {cities.map((c) => (
