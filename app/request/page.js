@@ -214,7 +214,7 @@ function RequestForm() {
 
   // كلاس موحّد للحقول
   const inputClass =
-    "w-full p-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-900 outline-none focus:border-red-500 focus:bg-white transition placeholder:text-gray-400";
+    "w-full p-3 rounded-xl bg-gray-50 border border-slate-400 text-gray-900 outline-none focus:border-red-500 focus:bg-white transition placeholder:text-gray-400";
 
   return (
     <main className="min-h-screen bg-white text-gray-900 px-4 py-12 md:px-6" dir="rtl">

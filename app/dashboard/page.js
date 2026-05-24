@@ -209,31 +209,31 @@ export default function DashboardPage() {
   };
 
   const getStatusClass = (status) => {
-    if ((status || "new") === "new") return "bg-yellow-50 text-yellow-700 border border-yellow-200";
-    if (status === "in-progress") return "bg-blue-50 text-blue-700 border border-blue-200";
-    return "bg-green-50 text-green-700 border border-green-200";
+    if ((status || "new") === "new") return "bg-yellow-100 text-yellow-800 border border-yellow-300";
+    if (status === "in-progress") return "bg-blue-100 text-blue-800 border border-blue-300";
+    return "bg-green-100 text-green-800 border border-green-300";
   };
 
   const getServiceBadgeClass = (service) => {
     const map = {
-      "بطارية": "bg-yellow-50 text-yellow-700 border border-yellow-200",
-      "كاوتش": "bg-orange-50 text-orange-700 border border-orange-200",
-      "بنزين": "bg-emerald-50 text-emerald-700 border border-emerald-200",
-      "كهرباء": "bg-blue-50 text-blue-700 border border-blue-200",
-      "ميكانيكا": "bg-red-50 text-red-700 border border-red-200",
-      "صيانة دورية": "bg-cyan-50 text-cyan-700 border border-cyan-200",
-      "عطل": "bg-pink-50 text-pink-700 border border-pink-200",
+      "بطارية": "bg-yellow-100 text-yellow-800 border border-yellow-300",
+      "كاوتش": "bg-orange-100 text-orange-800 border border-orange-300",
+      "بنزين": "bg-emerald-100 text-emerald-800 border border-emerald-300",
+      "كهرباء": "bg-blue-100 text-blue-800 border border-blue-300",
+      "ميكانيكا": "bg-red-100 text-red-800 border border-red-300",
+      "صيانة دورية": "bg-cyan-100 text-cyan-800 border border-cyan-300",
+      "عطل": "bg-pink-100 text-pink-800 border border-pink-300",
     };
-    return map[service] || "bg-gray-50 text-gray-700 border border-gray-200";
+    return map[service] || "bg-gray-100 text-gray-800 border border-gray-300";
   };
 
   if (authLoading) {
     return (
-      <main className="min-h-screen bg-gray-50 text-gray-900 flex items-center justify-center" dir="rtl">
+      <main className="min-h-screen bg-slate-100 text-gray-900 flex items-center justify-center" dir="rtl">
         <div className="text-center">
           <span className="bg-red-50 text-red-500 font-bold text-sm px-4 py-2 rounded-full">RoadFix Admin</span>
           <h1 className="text-2xl font-black mt-4 mb-3">جارٍ التحقق من الدخول...</h1>
-          <p className="text-gray-400">من فضلك انتظر لحظة</p>
+          <p className="text-gray-500">من فضلك انتظر لحظة</p>
         </div>
       </main>
     );
@@ -242,25 +242,50 @@ export default function DashboardPage() {
   if (!adminUser) return null;
 
   return (
-    <main className="min-h-screen bg-gray-50 text-gray-900 px-4 py-8 md:px-6 md:py-10" dir="rtl">
-      <div className="max-w-7xl mx-auto">
+    <main className="min-h-screen bg-slate-100 text-gray-900" dir="rtl">
 
-        {/* Header */}
-        <div className="mb-8 flex flex-col md:flex-row gap-4 md:items-center md:justify-between">
-          <div>
-            <span className="bg-red-50 text-red-500 font-bold text-sm px-4 py-2 rounded-full">RoadFix Dashboard</span>
-            <h1 className="text-3xl md:text-5xl font-black mt-4 mb-3">إدارة الطلبات</h1>
-            <p className="text-gray-500 text-sm">مسجل الدخول: {adminUser.email}</p>
-            <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse inline-block" />
-              التحديث المباشر شغال
-            </p>
+      {/* ===== Header Bar غامق ===== */}
+      <div className="bg-gradient-to-l from-slate-900 to-slate-800 text-white">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-8">
+          <div className="flex flex-col md:flex-row gap-4 md:items-center md:justify-between">
+            <div>
+              <span className="bg-red-500/20 text-red-300 font-bold text-sm px-4 py-2 rounded-full border border-red-500/30">RoadFix Dashboard</span>
+              <h1 className="text-3xl md:text-5xl font-black mt-4 mb-2">إدارة الطلبات</h1>
+              <p className="text-gray-400 text-sm">مسجل الدخول: {adminUser.email}</p>
+              <p className="text-xs text-green-400 mt-1 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse inline-block" />
+                التحديث المباشر شغال
+              </p>
+            </div>
+            <button onClick={handleLogout} disabled={logoutLoading}
+              className="bg-white/10 hover:bg-white/20 text-white border border-white/20 px-5 py-3 rounded-2xl font-bold transition disabled:opacity-60 w-fit backdrop-blur">
+              {logoutLoading ? "جارٍ الخروج..." : "تسجيل الخروج"}
+            </button>
           </div>
-          <button onClick={handleLogout} disabled={logoutLoading}
-            className="bg-white hover:bg-gray-50 text-red-600 border border-gray-200 px-5 py-3 rounded-2xl font-bold transition disabled:opacity-60 w-fit shadow-sm">
-            {logoutLoading ? "جارٍ الخروج..." : "تسجيل الخروج"}
-          </button>
+
+          {/* Stats داخل الـ header */}
+          <div className="grid grid-cols-2 xl:grid-cols-5 gap-4 mt-8">
+            {[
+              { label: "إجمالي الطلبات", value: requests.length, color: "text-white", icon: "📋" },
+              { label: "طلبات جديدة", value: countNew, color: "text-yellow-300", icon: "🆕" },
+              { label: "جاري التنفيذ", value: countProgress, color: "text-blue-300", icon: "🔧" },
+              { label: "تم التنفيذ", value: countDone, color: "text-green-300", icon: "✅" },
+              { label: "أكثر خدمة طلبًا", value: topService, color: "text-red-300", icon: "⭐", small: true },
+            ].map((s) => (
+              <div key={s.label} className="bg-white/5 backdrop-blur border border-white/10 rounded-2xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-gray-400 text-sm">{s.label}</p>
+                  <span className="text-lg">{s.icon}</span>
+                </div>
+                <p className={`font-black ${s.small ? "text-lg" : "text-3xl"} ${s.color}`}>{s.value}</p>
+              </div>
+            ))}
+          </div>
         </div>
+      </div>
+
+      {/* ===== Body ===== */}
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-8">
 
         {/* Alert */}
         {showAlert && (
@@ -269,30 +294,11 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 xl:grid-cols-5 gap-4 mb-8">
-          {[
-            { label: "إجمالي الطلبات", value: requests.length, color: "text-slate-900", icon: "📋", ring: "" },
-            { label: "طلبات جديدة", value: countNew, color: "text-yellow-600", icon: "🆕", ring: "ring-1 ring-yellow-100" },
-            { label: "جاري التنفيذ", value: countProgress, color: "text-blue-600", icon: "🔧", ring: "ring-1 ring-blue-100" },
-            { label: "تم التنفيذ", value: countDone, color: "text-green-600", icon: "✅", ring: "ring-1 ring-green-100" },
-            { label: "أكثر خدمة طلبًا", value: topService, color: "text-red-500", icon: "⭐", small: true, ring: "" },
-          ].map((s) => (
-            <div key={s.label} className={`bg-white border border-gray-100 rounded-3xl p-5 shadow-sm hover:shadow-md transition ${s.ring}`}>
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-gray-400 text-sm">{s.label}</p>
-                <span className="text-lg">{s.icon}</span>
-              </div>
-              <p className={`font-black ${s.small ? "text-xl" : "text-3xl"} ${s.color}`}>{s.value}</p>
-            </div>
-          ))}
-        </div>
-
         {/* Search */}
         <div className="mb-6">
           <input type="text" placeholder="🔍 ابحث بالاسم أو رقم الموبايل أو رقم الطلب..."
             value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-white border border-gray-200 rounded-2xl p-4 text-gray-900 outline-none focus:border-red-500 shadow-sm transition placeholder:text-gray-400" />
+            className="w-full bg-white border border-slate-600 rounded-2xl p-4 text-gray-900 outline-none focus:border-red-500 shadow-sm transition placeholder:text-gray-400" />
         </div>
 
         {/* Status Filter */}
@@ -322,7 +328,7 @@ export default function DashboardPage() {
 
         {/* Requests */}
         {filteredRequests.length === 0 ? (
-          <div className="bg-white border border-gray-100 rounded-3xl p-12 text-center shadow-sm">
+          <div className="bg-white border border-gray-200 rounded-3xl p-12 text-center shadow-sm">
             <p className="text-5xl mb-4">📭</p>
             <p className="text-gray-400 text-lg">لا توجد طلبات في هذا القسم</p>
           </div>
@@ -330,10 +336,9 @@ export default function DashboardPage() {
           <div className="grid gap-6">
             {filteredRequests.map((request) => (
               <div key={request.id}
-                className="bg-white border border-gray-100 rounded-3xl p-5 md:p-6 shadow-sm hover:shadow-md transition">
+                className="bg-white border border-gray-200 rounded-3xl p-5 md:p-6 shadow-sm hover:shadow-lg hover:border-gray-300 transition">
                 <div className="flex flex-col xl:flex-row gap-6">
 
-                  {/* Main Info */}
                   <div className="flex-1 space-y-4">
 
                     {/* Header */}
@@ -368,7 +373,7 @@ export default function DashboardPage() {
                         { label: "رقم اللوحة", value: request.plateNumber },
                         { label: "العربية", value: `${request.carBrand || ""} ${request.carModel || ""} ${request.carYear || ""}`.trim() || "غير محدد" },
                       ].map((item) => (
-                        <div key={item.label} className="bg-gray-50 border border-gray-100 rounded-2xl p-4">
+                        <div key={item.label} className="bg-slate-50 border border-slate-100 rounded-2xl p-4">
                           <p className="text-gray-400 mb-1">{item.label}</p>
                           <p className="font-bold text-gray-900">{item.value || "غير محدد"}</p>
                         </div>
@@ -376,14 +381,14 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Description */}
-                    <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4">
+                    <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4">
                       <p className="text-gray-400 mb-2">وصف العطل</p>
                       <p className="text-gray-900 leading-8">{request.description || "لا يوجد وصف"}</p>
                     </div>
 
                     {/* Location */}
                     {(request.location || request.manualAddress) && (
-                      <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4">
+                      <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4">
                         <p className="text-gray-500 mb-2 font-bold">📍 العنوان</p>
                         {request.manualAddress && <p className="text-gray-900 mb-3">{request.manualAddress}</p>}
                         {request.location && (
@@ -397,12 +402,12 @@ export default function DashboardPage() {
                     )}
 
                     {/* السعر والملاحظات */}
-                    <div className="bg-gradient-to-br from-gray-50 to-white border border-gray-100 rounded-2xl p-4">
+                    <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4">
                       <div className="flex items-center justify-between mb-3">
-                        <p className="text-gray-700 font-bold">💰 السعر والملاحظات</p>
+                        <p className="text-amber-800 font-bold">💰 السعر والملاحظات</p>
                         {editingId !== request.id && (
                           <button onClick={() => startEditing(request)}
-                            className="bg-red-50 hover:bg-red-100 text-red-600 text-xs px-3 py-1.5 rounded-lg border border-red-100 transition font-bold">
+                            className="bg-white hover:bg-amber-100 text-amber-700 text-xs px-3 py-1.5 rounded-lg border border-amber-200 transition font-bold">
                             {request.adminPrice || request.adminNotes ? "تعديل" : "+ إضافة"}
                           </button>
                         )}
@@ -412,10 +417,10 @@ export default function DashboardPage() {
                         <div className="space-y-3">
                           <input type="number" placeholder="السعر بالجنيه"
                             value={editPrice} onChange={(e) => setEditPrice(e.target.value)}
-                            className="w-full bg-white border border-gray-200 rounded-xl p-3 text-gray-900 outline-none focus:border-red-500" />
+                            className="w-full bg-white border border-slate-600 rounded-xl p-3 text-gray-900 outline-none focus:border-red-500" />
                           <textarea placeholder="ملاحظات للعميل..."
                             value={editNotes} onChange={(e) => setEditNotes(e.target.value)}
-                            className="w-full bg-white border border-gray-200 rounded-xl p-3 text-gray-900 h-20 outline-none focus:border-red-500 resize-none" />
+                            className="w-full bg-white border border-slate-600 rounded-xl p-3 text-gray-900 h-20 outline-none focus:border-red-500 resize-none" />
                           <div className="flex gap-3">
                             <button onClick={() => saveNotesAndPrice(request.id)} disabled={savingId === request.id}
                               className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-xl font-bold transition disabled:opacity-60">
@@ -429,13 +434,13 @@ export default function DashboardPage() {
                         </div>
                       ) : (
                         <div className="grid sm:grid-cols-2 gap-3">
-                          <div className="bg-white border border-gray-100 rounded-xl p-3">
+                          <div className="bg-white border border-amber-100 rounded-xl p-3">
                             <p className="text-gray-400 text-xs mb-1">السعر</p>
                             <p className="font-black text-green-600">
                               {request.adminPrice ? `${request.adminPrice} جنيه` : "لم يحدد بعد"}
                             </p>
                           </div>
-                          <div className="bg-white border border-gray-100 rounded-xl p-3">
+                          <div className="bg-white border border-amber-100 rounded-xl p-3">
                             <p className="text-gray-400 text-xs mb-1">ملاحظات</p>
                             <p className="font-bold text-gray-900 text-sm">
                               {request.adminNotes || "لا توجد ملاحظات"}
@@ -449,7 +454,7 @@ export default function DashboardPage() {
 
                   {/* Actions */}
                   <div className="xl:w-[240px] flex flex-col gap-3">
-                    <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4">
+                    <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4">
                       <p className="text-gray-500 text-sm mb-3 font-bold">إجراءات سريعة</p>
                       <div className="flex flex-col gap-3">
 
