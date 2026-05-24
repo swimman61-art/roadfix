@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   getStatusLabel,
   getStatusClass,
@@ -22,7 +23,15 @@ export default function RequestCard({
   handleDelete,
   sendWhatsAppToClient,
   formatDateTime,
+  getCustomerOrders,
 }) {
+  const [showHistory, setShowHistory] = useState(false);
+
+  // كل طلبات العميل ده (بنفس رقم الموبايل)
+  const customerOrders = getCustomerOrders ? getCustomerOrders(request.phone) : [];
+  const totalOrders = customerOrders.length;
+  const isReturning = totalOrders > 1; // عميل متكرر لو عنده أكتر من طلب
+
   return (
     <div className="bg-white border border-gray-200 rounded-3xl p-5 md:p-6 shadow-sm hover:shadow-lg hover:border-gray-300 transition">
       <div className="flex flex-col xl:flex-row gap-6">
@@ -37,6 +46,17 @@ export default function RequestCard({
                 <span className={`px-3 py-1 rounded-full text-xs font-bold ${getServiceBadgeClass(request.service)}`}>
                   {request.service || "غير محدد"}
                 </span>
+
+                {/* شارة العميل المتكرر */}
+                {isReturning ? (
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-800 border border-purple-300">
+                    ⭐ عميل متكرر · {totalOrders} طلبات
+                  </span>
+                ) : (
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-600 border border-gray-300">
+                    عميل جديد
+                  </span>
+                )}
               </div>
               <p className="text-gray-500 text-sm">الموبايل: {request.phone || "غير محدد"}</p>
               <div className="flex items-center gap-2 mt-1">
@@ -45,6 +65,14 @@ export default function RequestCard({
                   className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-3 py-1 rounded-lg border border-gray-200 transition">
                   {copiedId === request.id ? "تم النسخ ✅" : "نسخ"}
                 </button>
+
+                {/* زرار عرض الطلبات السابقة */}
+                {isReturning && (
+                  <button onClick={() => setShowHistory(true)}
+                    className="bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs px-3 py-1 rounded-lg border border-purple-200 transition font-bold">
+                    📋 شوف طلباته السابقة
+                  </button>
+                )}
               </div>
               <p className="text-gray-400 text-sm mt-1">تاريخ الطلب: {formatDateTime(request.createdAt)}</p>
             </div>
@@ -181,6 +209,54 @@ export default function RequestCard({
         </div>
 
       </div>
+
+      {/* ===== نافذة الطلبات السابقة ===== */}
+      {showHistory && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          onClick={() => setShowHistory(false)}>
+          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[80vh] overflow-y-auto shadow-2xl"
+            onClick={(e) => e.stopPropagation()}>
+
+            {/* رأس النافذة */}
+            <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between rounded-t-3xl">
+              <div>
+                <h3 className="text-xl font-black">طلبات {request.name || "العميل"}</h3>
+                <p className="text-gray-400 text-sm">{request.phone} · {totalOrders} طلبات</p>
+              </div>
+              <button onClick={() => setShowHistory(false)}
+                className="bg-gray-100 hover:bg-gray-200 text-gray-700 w-9 h-9 rounded-full font-bold transition">
+                ✕
+              </button>
+            </div>
+
+            {/* قائمة الطلبات */}
+            <div className="p-6 space-y-3">
+              {customerOrders.map((o) => (
+                <div key={o.id}
+                  className={`border rounded-2xl p-4 ${o.id === request.id ? "border-purple-300 bg-purple-50" : "border-gray-200 bg-gray-50"}`}>
+                  <div className="flex items-center justify-between gap-3 mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="font-black">{o.service || "خدمة"}</span>
+                      {o.id === request.id && (
+                        <span className="text-xs bg-purple-200 text-purple-800 px-2 py-0.5 rounded-full font-bold">الطلب الحالي</span>
+                      )}
+                    </div>
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${getStatusClass(o.status)}`}>
+                      {getStatusLabel(o.status)}
+                    </span>
+                  </div>
+                  <p className="text-red-500 text-xs font-bold mb-1">رقم الطلب: {o.requestNumber || "غير متوفر"}</p>
+                  <p className="text-gray-500 text-xs mb-2">{formatDateTime(o.createdAt)}</p>
+                  <p className="text-gray-700 text-sm">{o.description || "لا يوجد وصف"}</p>
+                  {o.adminPrice && (
+                    <p className="text-green-600 text-sm font-bold mt-2">السعر: {o.adminPrice} جنيه</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

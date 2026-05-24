@@ -18,7 +18,6 @@ export const SERVICE_OPTIONS = [
   "all", "بطارية", "كاوتش", "بنزين", "كهرباء", "ميكانيكا", "صيانة دورية", "عطل",
 ];
 
-// كل منطق الداش بورد في مكان واحد
 export function useDashboard() {
   const router = useRouter();
 
@@ -144,7 +143,6 @@ export function useDashboard() {
     }
   };
 
-  // ===== Auth =====
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!user) { router.replace("/login"); setAuthLoading(false); return; }
@@ -154,7 +152,6 @@ export function useDashboard() {
     return () => unsubscribe();
   }, [router]);
 
-  // ===== Realtime Listener =====
   useEffect(() => {
     if (authLoading || !adminUser) return;
     const q = query(collection(db, "requests"), orderBy("createdAt", "desc"));
@@ -171,7 +168,6 @@ export function useDashboard() {
     return () => unsubscribe();
   }, [authLoading, adminUser]);
 
-  // ===== Filters =====
   const filteredRequests = useMemo(() => {
     let result = requests;
     if (filter !== "all") result = result.filter((r) => (r.status || "new") === filter);
@@ -204,7 +200,29 @@ export function useDashboard() {
     return entries.sort((a, b) => b[1] - a[1])[0][0];
   }, [serviceCounts]);
 
-  // نرجّع كل اللي الواجهة محتاجاه
+  // ===== جديد: تاريخ كل عميل حسب رقم الموبايل =====
+  // بنجمّع كل الطلبات حسب رقم الموبايل، عشان نعرف كل عميل طلب كام مرة
+  const ordersByPhone = useMemo(() => {
+    const map = {};
+    requests.forEach((r) => {
+      const phone = (r.phone || "").trim();
+      if (!phone) return;
+      if (!map[phone]) map[phone] = [];
+      map[phone].push(r);
+    });
+    return map;
+  }, [requests]);
+
+  // دالة بترجّع كل طلبات عميل معيّن (مرتبة من الأحدث)
+  const getCustomerOrders = (phone) => {
+    const list = ordersByPhone[(phone || "").trim()] || [];
+    return [...list].sort((a, b) => {
+      const da = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
+      const dbb = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
+      return dbb - da;
+    });
+  };
+
   return {
     requests,
     filter, setFilter,
@@ -233,10 +251,9 @@ export function useDashboard() {
     countProgress,
     countDone,
     topService,
+    getCustomerOrders,
   };
 }
-
-// ===== دوال مساعدة للألوان (مش محتاجة state) =====
 
 export const getStatusLabel = (status) => {
   if ((status || "new") === "new") return "جديد";

@@ -133,6 +133,7 @@ export default function DashboardPage() {
                 handleDelete={d.handleDelete}
                 sendWhatsAppToClient={d.sendWhatsAppToClient}
                 formatDateTime={d.formatDateTime}
+                getCustomerOrders={d.getCustomerOrders}
               />
             ))}
           </div>
