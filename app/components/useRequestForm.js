@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { db, auth } from "../firebase";
 import { collection, addDoc, doc, getDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
+import emailjs from "@emailjs/browser";
 
 export const SERVICE_OPTIONS = [
   "بطارية",
@@ -18,6 +19,11 @@ export const SERVICE_OPTIONS = [
 
 const ADMIN_EMAIL = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase();
 const isAdminEmail = (email) => (email || "").toLowerCase().trim() === ADMIN_EMAIL;
+
+// 🆕 EmailJS keys
+const EMAILJS_SERVICE_ID = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID || "";
+const EMAILJS_TEMPLATE_ID = process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID || "";
+const EMAILJS_PUBLIC_KEY = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY || "";
 
 export function useRequestForm() {
   const searchParams = useSearchParams();
@@ -35,9 +41,8 @@ export function useRequestForm() {
   const [imagePreview, setImagePreview] = useState("");
 
   const [currentCustomer, setCurrentCustomer] = useState(null);
-  const [customerData, setCustomerData] = useState(null); // 🆕 بيانات العميل من Firestore
+  const [customerData, setCustomerData] = useState(null);
 
-  // 🆕 الحقول اللي هتتعبأ تلقائياً
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
 
@@ -45,13 +50,11 @@ export function useRequestForm() {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user && !isAdminEmail(user.email)) {
         setCurrentCustomer(user);
-        // 🆕 نجيب بيانات العميل من Firestore
         try {
           const userDoc = await getDoc(doc(db, "users", user.uid));
           if (userDoc.exists()) {
             const data = userDoc.data();
             setCustomerData(data);
-            // ملء تلقائي للحقول
             setName(data.name || "");
             setPhone(data.phone || "");
           }
@@ -143,13 +146,50 @@ export function useRequestForm() {
     return "";
   }, [formMessage.type]);
 
+  // 🆕 دالة إرسال إيميل للأدمن
+  const sendEmailToAdmin = async (orderData) => {
+    // لو المفاتيح مش موجودة، نتخطى الإرسال (مش نوقف الطلب)
+    if (!EMAILJS_SERVICE_ID || !EMAILJS_TEMPLATE_ID || !EMAILJS_PUBLIC_KEY) {
+      console.warn("EmailJS keys missing, skipping email notification");
+      return;
+    }
+
+    try {
+      const address = orderData.manualAddress
+        ? orderData.manualAddress
+        : orderData.location
+          ? `إحداثيات: ${orderData.location.lat}, ${orderData.location.lng}`
+          : "غير محدد";
+
+      const templateParams = {
+        request_number: orderData.requestNumber,
+        service: orderData.service,
+        customer_name: orderData.name,
+        customer_phone: orderData.phone,
+        description: orderData.description,
+        address: address,
+      };
+
+      await emailjs.send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID,
+        templateParams,
+        EMAILJS_PUBLIC_KEY
+      );
+
+      console.log("Email notification sent successfully");
+    } catch (error) {
+      // مش بنوقف الطلب لو الإيميل فشل
+      console.error("Failed to send email notification:", error);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFormMessage({ type: "", text: "" });
     setSuccessRequestNumber("");
 
     const form = e.target;
-    // 🆕 الاسم والموبايل من الـ state دلوقتي مش من form
     const nameValue = name.trim();
     const phoneValue = phone.trim();
     const description = form.description.value.trim();
@@ -205,7 +245,11 @@ export function useRequestForm() {
         userEmail: currentCustomer ? currentCustomer.email : null,
       };
 
+      // 1. حفظ الطلب في Firestore
       await addDoc(collection(db, "requests"), orderData);
+
+      // 2. 🆕 إرسال إيميل للأدمن (في الخلفية، مش بيوقف الطلب)
+      sendEmailToAdmin(orderData);
 
       setSuccessRequestNumber(requestNumber);
       setFormMessage({
@@ -221,7 +265,6 @@ export function useRequestForm() {
       setImagePreview("");
       setService(selectedServiceFromUrl || "");
 
-      // 🆕 لو العميل مسجّل، نرجّع بياناته بعد الـ reset
       if (customerData) {
         setName(customerData.name || "");
         setPhone(customerData.phone || "");
@@ -253,7 +296,6 @@ export function useRequestForm() {
     handleSubmit,
     messageBoxClass,
     currentCustomer,
-    // 🆕 الاسم والموبايل
     name, setName,
     phone, setPhone,
   };
