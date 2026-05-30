@@ -36,7 +36,6 @@ export default function SiteHeader() {
     }
   };
 
-  // نحدد نوع المستخدم
   const isAdmin = currentUser && isAdminEmail(currentUser.email);
   const isCustomer = currentUser && !isAdmin;
 
@@ -65,17 +64,11 @@ export default function SiteHeader() {
               اطلب خدمة
             </Link>
 
-            <Link href="/track"
-              className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-white/5 border border-white/10 hover:bg-white/10 transition">
-              تتبع الطلب
-            </Link>
-
             <Link href="/my-orders"
               className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-white/5 border border-white/10 hover:bg-white/10 transition">
               طلباتي
             </Link>
 
-            {/* لو مفيش حد مسجّل دخول → أزرار الدخول والتسجيل */}
             {!loading && !currentUser && (
               <>
                 <Link href="/login"
@@ -89,7 +82,6 @@ export default function SiteHeader() {
               </>
             )}
 
-            {/* لو الأدمن مسجّل → أزرار الداش بورد + تسجيل الخروج */}
             {!loading && isAdmin && (
               <>
                 <Link href="/dashboard"
@@ -103,7 +95,6 @@ export default function SiteHeader() {
               </>
             )}
 
-            {/* لو العميل مسجّل → بس تسجيل الخروج */}
             {!loading && isCustomer && (
               <button onClick={handleLogout} disabled={logoutLoading}
                 className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-red-600 hover:bg-red-700 border border-red-500 transition disabled:opacity-60">

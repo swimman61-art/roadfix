@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { auth, db } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, query, where, getDocs, orderBy, doc, getDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 
 const ADMIN_EMAIL = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase();
 const isAdminEmail = (email) => (email || "").toLowerCase().trim() === ADMIN_EMAIL;
@@ -14,12 +14,11 @@ export default function MyOrdersPage() {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [customerData, setCustomerData] = useState(null);
 
-  // للزوار (مش مسجّلين)
-  const [phone, setPhone] = useState("");
+  // للزوار - رقم الطلب فقط
+  const [requestNumber, setRequestNumber] = useState("");
   const [searched, setSearched] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  // النتائج
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -32,7 +31,6 @@ export default function MyOrdersPage() {
           if (userDoc.exists()) {
             const data = userDoc.data();
             setCustomerData(data);
-            // 🆕 نجيب الطلبات بالـ userId و رقم الموبايل (الطلبات القديمة)
             await fetchCustomerOrders(user.uid, data.phone);
           }
         } catch (error) {
@@ -47,10 +45,7 @@ export default function MyOrdersPage() {
     return () => unsubscribe();
   }, []);
 
-  const validateEgyptPhone = (p) => {
-    const normalized = p.replace(/\s+/g, "");
-    return /^01[0-2,5][0-9]{8}$/.test(normalized);
-  };
+  const isRequestNumber = (input) => /^RF-\d+$/i.test(input.trim());
 
   const formatDateTime = (createdAt) => {
     if (!createdAt) return "غير متوفر";
@@ -84,7 +79,6 @@ export default function MyOrdersPage() {
     return "100%";
   };
 
-  // 🆕 دالة دمج النتائج من غير تكرار
   const mergeOrders = (list1, list2) => {
     const merged = [...list1];
     list2.forEach((order) => {
@@ -92,7 +86,6 @@ export default function MyOrdersPage() {
         merged.push(order);
       }
     });
-    // ترتيب من الأحدث
     merged.sort((a, b) => {
       const da = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
       const dbb = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
@@ -101,36 +94,28 @@ export default function MyOrdersPage() {
     return merged;
   };
 
-  // 🆕 دالة جلب طلبات العميل المسجّل: userId + phone (للقديم)
+  // العميل المسجّل: userId + phone
   const fetchCustomerOrders = async (userId, customerPhone) => {
     setLoading(true);
     setOrders([]);
     try {
-      // 1. الطلبات المربوطة بحسابه (userId)
       let byUserId = [];
       try {
         const q1 = query(collection(db, "requests"), where("userId", "==", userId));
         const snap1 = await getDocs(q1);
         byUserId = snap1.docs.map((d) => ({ id: d.id, ...d.data() }));
-      } catch (e) {
-        console.warn("userId query failed:", e);
-      }
+      } catch (e) { console.warn("userId query failed:", e); }
 
-      // 2. الطلبات القديمة المربوطة برقم الموبايل (قبل ما يعمل حساب)
       let byPhone = [];
       if (customerPhone) {
         try {
           const q2 = query(collection(db, "requests"), where("phone", "==", customerPhone.trim()));
           const snap2 = await getDocs(q2);
           byPhone = snap2.docs.map((d) => ({ id: d.id, ...d.data() }));
-        } catch (e) {
-          console.warn("phone query failed:", e);
-        }
+        } catch (e) { console.warn("phone query failed:", e); }
       }
 
-      // 3. دمج النتائج
-      const combined = mergeOrders(byUserId, byPhone);
-      setOrders(combined);
+      setOrders(mergeOrders(byUserId, byPhone));
     } catch (error) {
       console.error("Fetch error:", error);
       setErrorMessage("تعذر الوصول لطلباتك حاليًا. حاول مرة أخرى بعد قليل.");
@@ -139,44 +124,33 @@ export default function MyOrdersPage() {
     }
   };
 
-  // البحث للزوار (بالموبايل بس)
+  // 🆕 الزائر: بحث برقم الطلب فقط
   const handleGuestSearch = async () => {
     setErrorMessage("");
-    if (!phone.trim()) {
-      setErrorMessage("من فضلك اكتب رقم موبايلك أولًا.");
+    const input = requestNumber.trim();
+
+    if (!input) {
+      setErrorMessage("من فضلك اكتب رقم الطلب.");
       return;
     }
-    if (!validateEgyptPhone(phone)) {
-      setErrorMessage("من فضلك اكتب رقم موبايل مصري صحيح مكوّن من 11 رقم.");
+
+    if (!isRequestNumber(input)) {
+      setErrorMessage("صيغة رقم الطلب غير صحيحة. الصيغة المظبوطة: RF-1234567890");
       return;
     }
+
     setSearched(true);
     setLoading(true);
     setOrders([]);
+
     try {
-      const q = query(
-        collection(db, "requests"),
-        where("phone", "==", phone.trim()),
-        orderBy("createdAt", "desc")
-      );
+      const q = query(collection(db, "requests"), where("requestNumber", "==", input));
       const snapshot = await getDocs(q);
       const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
       setOrders(data);
     } catch (error) {
       console.error("Guest search error:", error);
-      try {
-        const q2 = query(collection(db, "requests"), where("phone", "==", phone.trim()));
-        const snapshot2 = await getDocs(q2);
-        const data2 = snapshot2.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-        data2.sort((a, b) => {
-          const da = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
-          const dbb = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
-          return dbb - da;
-        });
-        setOrders(data2);
-      } catch (err2) {
-        setErrorMessage("تعذر الوصول لطلباتك حاليًا. حاول مرة أخرى بعد قليل.");
-      }
+      setErrorMessage("تعذر الوصول للطلب حاليًا. حاول مرة أخرى بعد قليل.");
     } finally {
       setLoading(false);
     }
@@ -209,68 +183,79 @@ export default function MyOrdersPage() {
             </p>
           ) : (
             <p className="text-gray-500 text-base md:text-lg max-w-2xl mx-auto leading-8">
-              اكتب رقم موبايلك عشان تشوف كل طلباتك السابقة وحالة كل طلب.
+              اكتب <span className="font-bold text-gray-900">رقم الطلب</span> عشان تتابع حالته.
             </p>
           )}
         </div>
 
-        {/* للزوار: خانة البحث بالموبايل */}
+        {/* للزوار: البحث برقم الطلب فقط */}
         {!currentUser && (
-          <div className="bg-gray-50 border border-gray-100 rounded-3xl p-6 md:p-8 shadow-sm mb-8">
-            <label className="block mb-3 text-sm text-gray-600 font-bold">رقم الموبايل</label>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <input
-                type="text"
-                inputMode="numeric"
-                placeholder="مثال: 01012345678"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") handleGuestSearch(); }}
-                className="flex-1 p-4 rounded-2xl bg-white border border-slate-400 text-gray-900 outline-none focus:border-red-500 transition placeholder:text-gray-400"
-              />
-              <button
-                onClick={handleGuestSearch}
-                disabled={loading}
-                className="bg-red-500 hover:bg-red-600 text-white px-8 py-4 rounded-2xl font-black transition disabled:opacity-60">
-                {loading ? "جارٍ البحث..." : "اعرض طلباتي"}
-              </button>
+          <>
+            <div className="bg-gray-50 border border-gray-100 rounded-3xl p-6 md:p-8 shadow-sm mb-6">
+              <label className="block mb-3 text-sm text-gray-600 font-bold">رقم الطلب</label>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input
+                  type="text"
+                  placeholder="مثال: RF-1742956123456"
+                  value={requestNumber}
+                  onChange={(e) => setRequestNumber(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleGuestSearch(); }}
+                  className="flex-1 p-4 rounded-2xl bg-white border border-slate-400 text-gray-900 outline-none focus:border-red-500 transition placeholder:text-gray-400"
+                />
+                <button
+                  onClick={handleGuestSearch}
+                  disabled={loading}
+                  className="bg-red-500 hover:bg-red-600 text-white px-8 py-4 rounded-2xl font-black transition disabled:opacity-60">
+                  {loading ? "جارٍ البحث..." : "بحث"}
+                </button>
+              </div>
+
+              {errorMessage && (
+                <div className="mt-4 bg-red-50 border border-red-200 rounded-2xl p-4">
+                  <p className="text-red-700 font-bold">{errorMessage}</p>
+                </div>
+              )}
             </div>
 
-            {errorMessage && (
-              <div className="mt-4 bg-red-50 border border-red-200 rounded-2xl p-4">
-                <p className="text-red-700 font-bold">{errorMessage}</p>
-              </div>
-            )}
-
-            <div className="mt-5 pt-5 border-t border-gray-200 text-center">
-              <p className="text-gray-600 text-sm mb-2">
-                💡 اعمل حساب علشان تشوف طلباتك تلقائياً من غير ما تكتب رقمك كل مرة
-              </p>
-              <div className="flex gap-3 justify-center mt-3">
-                <Link href="/signup" className="text-red-500 hover:text-red-600 font-bold text-sm">
-                  إنشاء حساب جديد ←
-                </Link>
-                <span className="text-gray-300">|</span>
-                <Link href="/login" className="text-red-500 hover:text-red-600 font-bold text-sm">
-                  لو عندك حساب، سجّل دخول
-                </Link>
+            {/* 🆕 صندوق "نسيت رقم الطلب؟" */}
+            <div className="bg-gradient-to-br from-amber-50 to-yellow-50 border-2 border-amber-200 rounded-3xl p-6 md:p-7 shadow-sm mb-8">
+              <div className="flex items-start gap-3">
+                <span className="text-3xl">🤔</span>
+                <div className="flex-1">
+                  <h3 className="text-lg font-black text-amber-900 mb-2">نسيت رقم الطلب؟</h3>
+                  <p className="text-amber-800 text-sm leading-7 mb-4">
+                    لو نسيت رقم الطلب، اعمل حساب جديد بنفس رقم الموبايل اللي طلبت بيه قبل كده — هتلاقي كل طلباتك السابقة في حسابك تلقائياً.
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    <Link href="/signup"
+                      className="inline-block bg-red-500 hover:bg-red-600 text-white px-5 py-3 rounded-xl font-bold transition text-sm">
+                      اعمل حساب جديد ←
+                    </Link>
+                    <Link href="/login"
+                      className="inline-block bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-5 py-3 rounded-xl font-bold transition text-sm">
+                      عندي حساب، سجّل دخول
+                    </Link>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+          </>
         )}
 
         {loading && (
           <div className="bg-gray-50 border border-gray-100 rounded-3xl p-10 text-center">
-            <p className="text-gray-500 text-lg">جارٍ تحميل طلباتك...</p>
+            <p className="text-gray-500 text-lg">جارٍ التحميل...</p>
           </div>
         )}
 
         {!loading && ((currentUser && customerData) || searched) && orders.length === 0 && !errorMessage && (
           <div className="bg-gray-50 border border-gray-100 rounded-3xl p-10 text-center">
             <p className="text-5xl mb-4">📭</p>
-            <p className="text-gray-500 text-lg font-bold mb-2">مفيش طلبات لسه</p>
+            <p className="text-gray-500 text-lg font-bold mb-2">
+              {currentUser ? "مفيش طلبات لسه" : "مفيش طلب بالرقم ده"}
+            </p>
             <p className="text-gray-400 text-sm">
-              {currentUser ? "ابدأ طلبك الأول دلوقتي" : "تأكد إنك كتبت نفس الرقم اللي طلبت بيه، أو اعمل طلب جديد."}
+              {currentUser ? "ابدأ طلبك الأول دلوقتي" : "تأكد إنك كتبت الرقم صح، أو اعمل طلب جديد."}
             </p>
             <Link href="/request" className="inline-block mt-5 bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-xl font-bold transition">
               اطلب خدمة دلوقتي 🔧

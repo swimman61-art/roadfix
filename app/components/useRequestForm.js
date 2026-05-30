@@ -34,13 +34,10 @@ export function useRequestForm() {
   const [successRequestNumber, setSuccessRequestNumber] = useState("");
   const [imagePreview, setImagePreview] = useState("");
 
-  // 🆕 حالة العميل المسجّل دخول
   const [currentCustomer, setCurrentCustomer] = useState(null);
 
-  // متابعة حالة الدخول
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      // نعتبر العميل بس (مش الأدمن)
       if (user && !isAdminEmail(user.email)) {
         setCurrentCustomer(user);
       } else {
@@ -168,7 +165,6 @@ export function useRequestForm() {
       setSubmitting(true);
       const requestNumber = generateRequestNumber();
 
-      // 🆕 لو فيه عميل مسجّل دخول، نربط الطلب بحسابه
       const orderData = {
         requestNumber,
         service,
@@ -186,7 +182,6 @@ export function useRequestForm() {
         imageName: selectedImage ? selectedImage.name : null,
         imageUrl: null,
         createdAt: new Date(),
-        // 🆕 ربط الطلب بحساب العميل لو موجود
         userId: currentCustomer ? currentCustomer.uid : null,
         userEmail: currentCustomer ? currentCustomer.email : null,
       };
@@ -229,6 +224,6 @@ export function useRequestForm() {
     handleImageChange,
     handleSubmit,
     messageBoxClass,
-    currentCustomer, // 🆕 نرجّعه عشان نوريه في الواجهة لو محتاجين
+    currentCustomer,
   };
 }

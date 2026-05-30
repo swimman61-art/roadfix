@@ -47,7 +47,7 @@ export default function CTA() {
               <div className="space-y-2 text-sm text-gray-400">
                 <div><Link href="/" className="hover:text-white transition-colors">الرئيسية</Link></div>
                 <div><Link href="/request" className="hover:text-white transition-colors">اطلب خدمة</Link></div>
-                <div><Link href="/track" className="hover:text-white transition-colors">تتبع الطلب</Link></div>
+                <div><Link href="/track" className="hover:text-white transition-colors">طلباتي</Link></div>
               </div>
             </div>
             <div>
