@@ -1,16 +1,53 @@
 "use client";
 
-import { useState } from "react";
-import { db } from "../firebase";
-import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { auth, db } from "../firebase";
+import { onAuthStateChanged } from "firebase/auth";
+import { collection, query, where, getDocs, orderBy, doc, getDoc } from "firebase/firestore";
+
+const ADMIN_EMAIL = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase();
+const isAdminEmail = (email) => (email || "").toLowerCase().trim() === ADMIN_EMAIL;
 
 export default function MyOrdersPage() {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [customerData, setCustomerData] = useState(null);
+
+  // للزوار (مش مسجّلين)
   const [phone, setPhone] = useState("");
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [debugInfo, setDebugInfo] = useState(""); // 🆕 لإظهار تفاصيل الخطأ
+
+  // النتائج
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  // متابعة تسجيل الدخول
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user && !isAdminEmail(user.email)) {
+        // عميل مسجّل دخول → نجيب بياناته
+        setCurrentUser(user);
+        try {
+          const userDoc = await getDoc(doc(db, "users", user.uid));
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            setCustomerData(data);
+            // نجيب طلباته بناءً على رقم موبايله المسجّل
+            await fetchOrdersByPhone(data.phone);
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+        }
+      } else {
+        setCurrentUser(null);
+        setCustomerData(null);
+      }
+      setCheckingAuth(false);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const validateEgyptPhone = (p) => {
     const normalized = p.replace(/\s+/g, "");
@@ -49,41 +86,24 @@ export default function MyOrdersPage() {
     return "100%";
   };
 
-  const handleSearch = async () => {
-    setErrorMessage("");
-    setDebugInfo("");
-
-    if (!phone.trim()) {
-      setErrorMessage("من فضلك اكتب رقم موبايلك أولًا.");
-      return;
-    }
-    if (!validateEgyptPhone(phone)) {
-      setErrorMessage("من فضلك اكتب رقم موبايل مصري صحيح مكوّن من 11 رقم.");
-      return;
-    }
-
+  // دالة موحّدة لجلب الطلبات حسب رقم الموبايل
+  const fetchOrdersByPhone = async (phoneNumber) => {
     setLoading(true);
-    setSearched(true);
     setOrders([]);
-
-    let firstErrorMsg = "";
-
     try {
       const q = query(
         collection(db, "requests"),
-        where("phone", "==", phone.trim()),
+        where("phone", "==", phoneNumber.trim()),
         orderBy("createdAt", "desc")
       );
       const snapshot = await getDocs(q);
       const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
       setOrders(data);
     } catch (error) {
-      firstErrorMsg = `[محاولة 1] ${error?.code || ""} - ${error?.message || error}`;
-      console.error("Attempt 1 failed:", error);
-
+      console.error("Fetch error:", error);
       // محاولة احتياطية بدون orderBy
       try {
-        const q2 = query(collection(db, "requests"), where("phone", "==", phone.trim()));
+        const q2 = query(collection(db, "requests"), where("phone", "==", phoneNumber.trim()));
         const snapshot2 = await getDocs(q2);
         const data2 = snapshot2.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
         data2.sort((a, b) => {
@@ -93,16 +113,40 @@ export default function MyOrdersPage() {
         });
         setOrders(data2);
       } catch (err2) {
-        console.error("Attempt 2 failed:", err2);
+        console.error("Backup fetch error:", err2);
         setErrorMessage("تعذر الوصول لطلباتك حاليًا. حاول مرة أخرى بعد قليل.");
-        // 🆕 نظهر تفاصيل الـ error على الشاشة
-        const errMsg2 = `[محاولة 2] ${err2?.code || ""} - ${err2?.message || err2}`;
-        setDebugInfo(`${firstErrorMsg}\n\n${errMsg2}\n\nالمتصفح: ${navigator.userAgent}`);
       }
     } finally {
       setLoading(false);
     }
   };
+
+  // البحث للزوار بالموبايل
+  const handleGuestSearch = async () => {
+    setErrorMessage("");
+    if (!phone.trim()) {
+      setErrorMessage("من فضلك اكتب رقم موبايلك أولًا.");
+      return;
+    }
+    if (!validateEgyptPhone(phone)) {
+      setErrorMessage("من فضلك اكتب رقم موبايل مصري صحيح مكوّن من 11 رقم.");
+      return;
+    }
+    setSearched(true);
+    await fetchOrdersByPhone(phone);
+  };
+
+  // عرض اللودينج
+  if (checkingAuth) {
+    return (
+      <main className="min-h-screen bg-white text-gray-900 flex items-center justify-center" dir="rtl">
+        <div className="text-center">
+          <span className="bg-red-50 text-red-500 font-bold text-sm px-4 py-2 rounded-full">RoadFix</span>
+          <h1 className="text-2xl font-black mt-4 mb-3">جارٍ التحميل...</h1>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-white text-gray-900 px-4 py-12 md:px-6" dir="rtl">
@@ -112,72 +156,97 @@ export default function MyOrdersPage() {
         <div className="text-center mb-10">
           <span className="bg-red-50 text-red-500 font-bold text-sm px-4 py-2 rounded-full">RoadFix</span>
           <h1 className="text-3xl md:text-5xl font-black mt-4 mb-4">طلباتي</h1>
-          <p className="text-gray-500 text-base md:text-lg max-w-2xl mx-auto leading-8">
-            اكتب رقم موبايلك عشان تشوف كل طلباتك السابقة وحالة كل طلب.
-          </p>
-        </div>
-
-        {/* Search Box */}
-        <div className="bg-gray-50 border border-gray-100 rounded-3xl p-6 md:p-8 shadow-sm mb-8">
-          <label className="block mb-3 text-sm text-gray-600 font-bold">رقم الموبايل</label>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <input
-              type="text"
-              inputMode="numeric"
-              placeholder="مثال: 01012345678"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") handleSearch(); }}
-              className="flex-1 p-4 rounded-2xl bg-white border border-slate-400 text-gray-900 outline-none focus:border-red-500 transition placeholder:text-gray-400"
-            />
-            <button
-              onClick={handleSearch}
-              disabled={loading}
-              className="bg-red-500 hover:bg-red-600 text-white px-8 py-4 rounded-2xl font-black transition disabled:opacity-60">
-              {loading ? "جارٍ البحث..." : "اعرض طلباتي"}
-            </button>
-          </div>
-
-          {errorMessage && (
-            <div className="mt-4 bg-red-50 border border-red-200 rounded-2xl p-4">
-              <p className="text-red-700 font-bold">{errorMessage}</p>
-            </div>
-          )}
-
-          {/* 🆕 معلومات الخطأ التفصيلية - مؤقتة للـ debugging */}
-          {debugInfo && (
-            <div className="mt-4 bg-yellow-50 border border-yellow-300 rounded-2xl p-4">
-              <p className="text-yellow-800 font-bold mb-2 text-sm">🔍 تفاصيل الخطأ (للتشخيص):</p>
-              <pre className="text-xs text-gray-800 whitespace-pre-wrap break-words leading-6 bg-white p-3 rounded-xl border border-yellow-200">
-                {debugInfo}
-              </pre>
-            </div>
+          {currentUser && customerData ? (
+            <p className="text-gray-500 text-base md:text-lg max-w-2xl mx-auto leading-8">
+              أهلاً <span className="font-bold text-gray-900">{customerData.name}</span> 👋
+              <br />
+              ده تاريخ كل طلباتك المرتبطة برقم موبايلك: <span className="font-bold">{customerData.phone}</span>
+            </p>
+          ) : (
+            <p className="text-gray-500 text-base md:text-lg max-w-2xl mx-auto leading-8">
+              اكتب رقم موبايلك عشان تشوف كل طلباتك السابقة وحالة كل طلب.
+            </p>
           )}
         </div>
 
-        {/* Results */}
-        {searched && !loading && orders.length === 0 && !errorMessage && (
-          <div className="bg-gray-50 border border-gray-100 rounded-3xl p-10 text-center">
-            <p className="text-5xl mb-4">📭</p>
-            <p className="text-gray-500 text-lg font-bold mb-2">مفيش طلبات بالرقم ده</p>
-            <p className="text-gray-400 text-sm">تأكد إنك كتبت نفس الرقم اللي طلبت بيه، أو اعمل طلب جديد.</p>
-            <a href="/request" className="inline-block mt-5 bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-xl font-bold transition">
-              اطلب خدمة دلوقتي 🔧
-            </a>
+        {/* للزوار: خانة البحث بالموبايل */}
+        {!currentUser && (
+          <div className="bg-gray-50 border border-gray-100 rounded-3xl p-6 md:p-8 shadow-sm mb-8">
+            <label className="block mb-3 text-sm text-gray-600 font-bold">رقم الموبايل</label>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <input
+                type="text"
+                inputMode="numeric"
+                placeholder="مثال: 01012345678"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") handleGuestSearch(); }}
+                className="flex-1 p-4 rounded-2xl bg-white border border-slate-400 text-gray-900 outline-none focus:border-red-500 transition placeholder:text-gray-400"
+              />
+              <button
+                onClick={handleGuestSearch}
+                disabled={loading}
+                className="bg-red-500 hover:bg-red-600 text-white px-8 py-4 rounded-2xl font-black transition disabled:opacity-60">
+                {loading ? "جارٍ البحث..." : "اعرض طلباتي"}
+              </button>
+            </div>
+
+            {errorMessage && (
+              <div className="mt-4 bg-red-50 border border-red-200 rounded-2xl p-4">
+                <p className="text-red-700 font-bold">{errorMessage}</p>
+              </div>
+            )}
+
+            {/* اقتراح إنشاء حساب */}
+            <div className="mt-5 pt-5 border-t border-gray-200 text-center">
+              <p className="text-gray-600 text-sm mb-2">
+                💡 اعمل حساب علشان تشوف طلباتك تلقائياً من غير ما تكتب رقمك كل مرة
+              </p>
+              <div className="flex gap-3 justify-center mt-3">
+                <Link href="/signup" className="text-red-500 hover:text-red-600 font-bold text-sm">
+                  إنشاء حساب جديد ←
+                </Link>
+                <span className="text-gray-300">|</span>
+                <Link href="/login" className="text-red-500 hover:text-red-600 font-bold text-sm">
+                  لو عندك حساب، سجّل دخول
+                </Link>
+              </div>
+            </div>
           </div>
         )}
 
-        {orders.length > 0 && (
+        {/* عرض اللودينج */}
+        {loading && (
+          <div className="bg-gray-50 border border-gray-100 rounded-3xl p-10 text-center">
+            <p className="text-gray-500 text-lg">جارٍ تحميل طلباتك...</p>
+          </div>
+        )}
+
+        {/* لا توجد نتائج */}
+        {!loading && ((currentUser && customerData) || searched) && orders.length === 0 && !errorMessage && (
+          <div className="bg-gray-50 border border-gray-100 rounded-3xl p-10 text-center">
+            <p className="text-5xl mb-4">📭</p>
+            <p className="text-gray-500 text-lg font-bold mb-2">مفيش طلبات لسه</p>
+            <p className="text-gray-400 text-sm">
+              {currentUser ? "ابدأ طلبك الأول دلوقتي" : "تأكد إنك كتبت نفس الرقم اللي طلبت بيه، أو اعمل طلب جديد."}
+            </p>
+            <Link href="/request" className="inline-block mt-5 bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-xl font-bold transition">
+              اطلب خدمة دلوقتي 🔧
+            </Link>
+          </div>
+        )}
+
+        {/* عرض الطلبات */}
+        {!loading && orders.length > 0 && (
           <div className="space-y-5">
             <div className="flex items-center justify-between">
               <p className="text-gray-500 text-sm">
-                لقينا <span className="font-black text-gray-900">{orders.length}</span> طلب بالرقم ده
+                لقينا <span className="font-black text-gray-900">{orders.length}</span> طلب
               </p>
             </div>
 
             {orders.map((order) => (
               <div key={order.id} className="bg-white border border-gray-200 rounded-3xl p-5 md:p-6 shadow-sm hover:shadow-md transition">
-                {/* Top row */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                   <div>
                     <div className="flex items-center gap-3 mb-1">
@@ -191,13 +260,11 @@ export default function MyOrdersPage() {
                   <p className="text-gray-400 text-sm">{formatDateTime(order.createdAt)}</p>
                 </div>
 
-                {/* Progress bar */}
                 <div className="mb-4 h-2.5 bg-gray-100 rounded-full overflow-hidden">
                   <div className="h-full bg-red-500 rounded-full transition-all duration-500"
                     style={{ width: getProgressWidth(order.status) }} />
                 </div>
 
-                {/* Details */}
                 <div className="grid sm:grid-cols-2 gap-3 text-sm">
                   <div className="bg-gray-50 border border-gray-100 rounded-2xl p-3">
                     <p className="text-gray-400 mb-1">وصف العطل</p>
