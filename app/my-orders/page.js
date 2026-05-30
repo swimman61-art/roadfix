@@ -10,6 +10,7 @@ export default function MyOrdersPage() {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [debugInfo, setDebugInfo] = useState(""); // 🆕 لإظهار تفاصيل الخطأ
 
   const validateEgyptPhone = (p) => {
     const normalized = p.replace(/\s+/g, "");
@@ -50,6 +51,7 @@ export default function MyOrdersPage() {
 
   const handleSearch = async () => {
     setErrorMessage("");
+    setDebugInfo("");
 
     if (!phone.trim()) {
       setErrorMessage("من فضلك اكتب رقم موبايلك أولًا.");
@@ -64,6 +66,8 @@ export default function MyOrdersPage() {
     setSearched(true);
     setOrders([]);
 
+    let firstErrorMsg = "";
+
     try {
       const q = query(
         collection(db, "requests"),
@@ -74,8 +78,10 @@ export default function MyOrdersPage() {
       const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
       setOrders(data);
     } catch (error) {
-      console.error(error);
-      // لو الـ index مش موجود، بنجيب من غير ترتيب
+      firstErrorMsg = `[محاولة 1] ${error?.code || ""} - ${error?.message || error}`;
+      console.error("Attempt 1 failed:", error);
+
+      // محاولة احتياطية بدون orderBy
       try {
         const q2 = query(collection(db, "requests"), where("phone", "==", phone.trim()));
         const snapshot2 = await getDocs(q2);
@@ -87,8 +93,11 @@ export default function MyOrdersPage() {
         });
         setOrders(data2);
       } catch (err2) {
-        console.error(err2);
+        console.error("Attempt 2 failed:", err2);
         setErrorMessage("تعذر الوصول لطلباتك حاليًا. حاول مرة أخرى بعد قليل.");
+        // 🆕 نظهر تفاصيل الـ error على الشاشة
+        const errMsg2 = `[محاولة 2] ${err2?.code || ""} - ${err2?.message || err2}`;
+        setDebugInfo(`${firstErrorMsg}\n\n${errMsg2}\n\nالمتصفح: ${navigator.userAgent}`);
       }
     } finally {
       setLoading(false);
@@ -132,6 +141,16 @@ export default function MyOrdersPage() {
           {errorMessage && (
             <div className="mt-4 bg-red-50 border border-red-200 rounded-2xl p-4">
               <p className="text-red-700 font-bold">{errorMessage}</p>
+            </div>
+          )}
+
+          {/* 🆕 معلومات الخطأ التفصيلية - مؤقتة للـ debugging */}
+          {debugInfo && (
+            <div className="mt-4 bg-yellow-50 border border-yellow-300 rounded-2xl p-4">
+              <p className="text-yellow-800 font-bold mb-2 text-sm">🔍 تفاصيل الخطأ (للتشخيص):</p>
+              <pre className="text-xs text-gray-800 whitespace-pre-wrap break-words leading-6 bg-white p-3 rounded-xl border border-yellow-200">
+                {debugInfo}
+              </pre>
             </div>
           )}
         </div>
