@@ -19,10 +19,22 @@ export default function RequestForm() {
     handleImageChange,
     handleSubmit,
     messageBoxClass,
+    currentCustomer,
+    name, setName,
+    phone, setPhone,
   } = useRequestForm();
 
   const inputClass =
     "w-full p-3 rounded-xl bg-gray-50 border border-slate-400 text-gray-900 outline-none focus:border-red-500 focus:bg-white transition placeholder:text-gray-400";
+
+  const copyRequestNumber = async () => {
+    try {
+      await navigator.clipboard.writeText(successRequestNumber);
+      alert("تم نسخ رقم الطلب ✅");
+    } catch {
+      alert("تعذر النسخ، احفظ الرقم يدوياً");
+    }
+  };
 
   return (
     <main className="min-h-screen bg-white text-gray-900 px-4 py-12 md:px-6" dir="rtl">
@@ -41,15 +53,44 @@ export default function RequestForm() {
         {formMessage.text && (
           <div className={messageBoxClass}>
             <p className="font-bold">{formMessage.text}</p>
+
             {successRequestNumber && (
-              <div className="mt-3 bg-white border border-green-200 rounded-xl p-4">
-                <p className="text-sm text-gray-500 mb-1">رقم الطلب</p>
-                <p className="text-xl font-black text-gray-900">{successRequestNumber}</p>
-                <p className="text-sm text-gray-400 mt-2 mb-4">يمكنك استخدامه لاحقًا في صفحة التتبع.</p>
-                <a href={`/track?number=${successRequestNumber}`}
-                  className="inline-block bg-green-500 hover:bg-green-600 text-white px-5 py-3 rounded-xl font-bold transition">
-                  تتبع الطلب الآن 🔍
-                </a>
+              <div className="mt-4 bg-white border-2 border-green-300 rounded-2xl p-5 shadow-sm">
+                {!currentCustomer && (
+                  <div className="bg-yellow-50 border-2 border-yellow-300 rounded-xl p-4 mb-4">
+                    <p className="text-yellow-900 font-black text-base mb-1 flex items-center gap-2">
+                      ⚠️ مهم جداً — احفظ رقم الطلب
+                    </p>
+                    <p className="text-yellow-800 text-sm leading-7">
+                      رقم الطلب ده هو طريقتك الوحيدة لمتابعة طلبك. صوّر الشاشة أو انسخ الرقم واحتفظ بيه في مكان آمن.
+                      <br />
+                      <span className="font-bold">أو اعمل حساب دلوقتي عشان طلباتك تتحفظ تلقائياً.</span>
+                    </p>
+                  </div>
+                )}
+
+                <p className="text-sm text-gray-500 mb-2">رقم الطلب</p>
+                <div className="flex flex-wrap items-center gap-3 mb-4">
+                  <p className="text-3xl font-black text-gray-900 tracking-wider">{successRequestNumber}</p>
+                  <button
+                    onClick={copyRequestNumber}
+                    className="bg-gray-900 hover:bg-gray-800 text-white text-sm px-4 py-2 rounded-xl font-bold transition">
+                    📋 نسخ الرقم
+                  </button>
+                </div>
+
+                <div className="flex flex-wrap gap-3">
+                  <a href={`/my-orders?ref=${successRequestNumber}`}
+                    className="inline-block bg-green-500 hover:bg-green-600 text-white px-5 py-3 rounded-xl font-bold transition">
+                    تتبع الطلب 🔍
+                  </a>
+                  {!currentCustomer && (
+                    <a href="/signup"
+                      className="inline-block bg-red-500 hover:bg-red-600 text-white px-5 py-3 rounded-xl font-bold transition">
+                      اعمل حساب احفظ طلباتك ←
+                    </a>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -64,6 +105,17 @@ export default function RequestForm() {
                 <h2 className="text-2xl font-black">بيانات الطلب</h2>
                 <p className="text-gray-500 mt-2">املى البيانات الأساسية والعنوان وطريقة الدفع</p>
               </div>
+
+              {/* 🆕 رسالة ترحيب للعميل المسجّل */}
+              {currentCustomer && (
+                <div className="bg-green-50 border border-green-200 rounded-2xl px-5 py-4">
+                  <p className="text-sm text-green-700 mb-1 font-bold">أهلاً بيك تاني 👋</p>
+                  <p className="text-base text-green-800 leading-8">
+                    ملأنالك بياناتك تلقائياً عشان نوفّر وقتك. عبّى باقي تفاصيل العطل وابعت الطلب.
+                  </p>
+                </div>
+              )}
+
               <div className="bg-yellow-50 border border-yellow-200 rounded-2xl px-5 py-4">
                 <p className="text-sm text-yellow-700 mb-1 font-bold">معلومة مهمة</p>
                 <p className="text-base font-bold text-yellow-800 leading-8">
@@ -80,7 +132,6 @@ export default function RequestForm() {
 
             <form className="space-y-6" onSubmit={handleSubmit}>
 
-              {/* نوع الخدمة */}
               <div className="bg-gray-50 border border-gray-100 rounded-2xl p-5">
                 <h3 className="text-lg font-black text-gray-900 mb-4">نوع الخدمة</h3>
                 <select value={service} onChange={(e) => setService(e.target.value)} className={inputClass}>
@@ -91,17 +142,35 @@ export default function RequestForm() {
                 </select>
               </div>
 
-              {/* بيانات العميل */}
               <div className="bg-gray-50 border border-gray-100 rounded-2xl p-5">
                 <h3 className="text-lg font-black text-gray-900 mb-4">بيانات العميل</h3>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block mb-2 text-sm text-gray-600 font-bold">الاسم</label>
-                    <input name="name" placeholder="اكتب اسمك" className={inputClass} />
+                    <label className="block mb-2 text-sm text-gray-600 font-bold">
+                      الاسم
+                      {currentCustomer && <span className="text-green-600 text-xs mr-2">✓ من حسابك</span>}
+                    </label>
+                    <input
+                      name="name"
+                      placeholder="اكتب اسمك"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className={inputClass}
+                    />
                   </div>
                   <div>
-                    <label className="block mb-2 text-sm text-gray-600 font-bold">الموبايل</label>
-                    <input name="phone" inputMode="numeric" placeholder="مثال: 01012345678" className={inputClass} />
+                    <label className="block mb-2 text-sm text-gray-600 font-bold">
+                      الموبايل
+                      {currentCustomer && <span className="text-green-600 text-xs mr-2">✓ من حسابك</span>}
+                    </label>
+                    <input
+                      name="phone"
+                      inputMode="numeric"
+                      placeholder="مثال: 01012345678"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className={inputClass}
+                    />
                   </div>
                 </div>
                 <div className="mt-4">
@@ -110,7 +179,6 @@ export default function RequestForm() {
                 </div>
               </div>
 
-              {/* بيانات العربية */}
               <div className="bg-gray-50 border border-gray-100 rounded-2xl p-5">
                 <h3 className="text-lg font-black text-gray-900 mb-4">بيانات العربية</h3>
                 <div className="grid md:grid-cols-2 gap-4">
@@ -121,7 +189,6 @@ export default function RequestForm() {
                 </div>
               </div>
 
-              {/* الموقع */}
               <div className="bg-gray-50 border border-gray-100 rounded-2xl p-5">
                 <div className="flex items-center justify-between gap-4 mb-4">
                   <h3 className="text-lg font-black text-gray-900">الموقع</h3>
@@ -169,7 +236,6 @@ export default function RequestForm() {
                 </div>
               </div>
 
-              {/* صورة العطل */}
               <div className="bg-gray-50 border border-gray-100 rounded-2xl p-5">
                 <h3 className="text-lg font-black text-gray-900 mb-4">صورة العطل</h3>
                 <input type="file" accept="image/*" onChange={handleImageChange}
@@ -185,7 +251,6 @@ export default function RequestForm() {
                 </p>
               </div>
 
-              {/* طريقة الدفع */}
               <div className="bg-gray-50 border border-gray-100 rounded-2xl p-5">
                 <h3 className="text-lg font-black text-gray-900 mb-4">طريقة الدفع</h3>
                 <select name="paymentMethod" className={inputClass} defaultValue="كاش">
@@ -201,7 +266,6 @@ export default function RequestForm() {
             </form>
           </div>
 
-          {/* الجانب */}
           <RequestSidebar />
 
         </div>

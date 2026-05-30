@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { db, auth } from "../firebase";
-import { collection, addDoc } from "firebase/firestore";
+import { collection, addDoc, doc, getDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 
 export const SERVICE_OPTIONS = [
@@ -35,23 +35,41 @@ export function useRequestForm() {
   const [imagePreview, setImagePreview] = useState("");
 
   const [currentCustomer, setCurrentCustomer] = useState(null);
+  const [customerData, setCustomerData] = useState(null); // 🆕 بيانات العميل من Firestore
+
+  // 🆕 الحقول اللي هتتعبأ تلقائياً
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user && !isAdminEmail(user.email)) {
         setCurrentCustomer(user);
+        // 🆕 نجيب بيانات العميل من Firestore
+        try {
+          const userDoc = await getDoc(doc(db, "users", user.uid));
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            setCustomerData(data);
+            // ملء تلقائي للحقول
+            setName(data.name || "");
+            setPhone(data.phone || "");
+          }
+        } catch (error) {
+          console.error("Error fetching customer data:", error);
+        }
       } else {
         setCurrentCustomer(null);
+        setCustomerData(null);
+        setName("");
+        setPhone("");
       }
     });
     return () => unsubscribe();
   }, []);
 
   useEffect(() => {
-    if (
-      selectedServiceFromUrl &&
-      SERVICE_OPTIONS.includes(selectedServiceFromUrl)
-    ) {
+    if (selectedServiceFromUrl && SERVICE_OPTIONS.includes(selectedServiceFromUrl)) {
       setService(selectedServiceFromUrl);
     }
   }, [selectedServiceFromUrl]);
@@ -100,8 +118,8 @@ export function useRequestForm() {
 
   const generateRequestNumber = () => `RF-${Date.now()}`;
 
-  const validateEgyptPhone = (phone) => {
-    const normalized = phone.replace(/\s+/g, "");
+  const validateEgyptPhone = (p) => {
+    const normalized = p.replace(/\s+/g, "");
     return /^01[0-2,5][0-9]{8}$/.test(normalized);
   };
 
@@ -131,8 +149,9 @@ export function useRequestForm() {
     setSuccessRequestNumber("");
 
     const form = e.target;
-    const name = form.name.value.trim();
-    const phone = form.phone.value.trim();
+    // 🆕 الاسم والموبايل من الـ state دلوقتي مش من form
+    const nameValue = name.trim();
+    const phoneValue = phone.trim();
     const description = form.description.value.trim();
     const carBrand = form.carBrand.value.trim();
     const carModel = form.carModel.value.trim();
@@ -144,11 +163,11 @@ export function useRequestForm() {
       setFormMessage({ type: "error", text: "من فضلك اختر نوع الخدمة أولًا." });
       return;
     }
-    if (!name || !phone || !description) {
+    if (!nameValue || !phoneValue || !description) {
       setFormMessage({ type: "error", text: "من فضلك املى الاسم ورقم الموبايل ووصف العطل." });
       return;
     }
-    if (!validateEgyptPhone(phone)) {
+    if (!validateEgyptPhone(phoneValue)) {
       setFormMessage({ type: "error", text: "من فضلك اكتب رقم موبايل مصري صحيح مكوّن من 11 رقم." });
       return;
     }
@@ -168,8 +187,8 @@ export function useRequestForm() {
       const orderData = {
         requestNumber,
         service,
-        name,
-        phone,
+        name: nameValue,
+        phone: phoneValue,
         description,
         carBrand: carBrand || null,
         carModel: carModel || null,
@@ -201,6 +220,15 @@ export function useRequestForm() {
       setLocationMessage("");
       setImagePreview("");
       setService(selectedServiceFromUrl || "");
+
+      // 🆕 لو العميل مسجّل، نرجّع بياناته بعد الـ reset
+      if (customerData) {
+        setName(customerData.name || "");
+        setPhone(customerData.phone || "");
+      } else {
+        setName("");
+        setPhone("");
+      }
     } catch (error) {
       console.error(error);
       setFormMessage({ type: "error", text: "حصل خطأ أثناء إرسال الطلب. حاول مرة أخرى." });
@@ -225,5 +253,8 @@ export function useRequestForm() {
     handleSubmit,
     messageBoxClass,
     currentCustomer,
+    // 🆕 الاسم والموبايل
+    name, setName,
+    phone, setPhone,
   };
 }
