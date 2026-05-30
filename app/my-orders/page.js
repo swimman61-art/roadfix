@@ -23,19 +23,17 @@ export default function MyOrdersPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // متابعة تسجيل الدخول
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user && !isAdminEmail(user.email)) {
-        // عميل مسجّل دخول → نجيب بياناته
         setCurrentUser(user);
         try {
           const userDoc = await getDoc(doc(db, "users", user.uid));
           if (userDoc.exists()) {
             const data = userDoc.data();
             setCustomerData(data);
-            // نجيب طلباته بناءً على رقم موبايله المسجّل
-            await fetchOrdersByPhone(data.phone);
+            // 🆕 نجيب الطلبات بالـ userId و رقم الموبايل (الطلبات القديمة)
+            await fetchCustomerOrders(user.uid, data.phone);
           }
         } catch (error) {
           console.error("Error fetching user data:", error);
@@ -86,42 +84,62 @@ export default function MyOrdersPage() {
     return "100%";
   };
 
-  // دالة موحّدة لجلب الطلبات حسب رقم الموبايل
-  const fetchOrdersByPhone = async (phoneNumber) => {
+  // 🆕 دالة دمج النتائج من غير تكرار
+  const mergeOrders = (list1, list2) => {
+    const merged = [...list1];
+    list2.forEach((order) => {
+      if (!merged.some((o) => o.id === order.id)) {
+        merged.push(order);
+      }
+    });
+    // ترتيب من الأحدث
+    merged.sort((a, b) => {
+      const da = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
+      const dbb = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
+      return dbb - da;
+    });
+    return merged;
+  };
+
+  // 🆕 دالة جلب طلبات العميل المسجّل: userId + phone (للقديم)
+  const fetchCustomerOrders = async (userId, customerPhone) => {
     setLoading(true);
     setOrders([]);
     try {
-      const q = query(
-        collection(db, "requests"),
-        where("phone", "==", phoneNumber.trim()),
-        orderBy("createdAt", "desc")
-      );
-      const snapshot = await getDocs(q);
-      const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      setOrders(data);
+      // 1. الطلبات المربوطة بحسابه (userId)
+      let byUserId = [];
+      try {
+        const q1 = query(collection(db, "requests"), where("userId", "==", userId));
+        const snap1 = await getDocs(q1);
+        byUserId = snap1.docs.map((d) => ({ id: d.id, ...d.data() }));
+      } catch (e) {
+        console.warn("userId query failed:", e);
+      }
+
+      // 2. الطلبات القديمة المربوطة برقم الموبايل (قبل ما يعمل حساب)
+      let byPhone = [];
+      if (customerPhone) {
+        try {
+          const q2 = query(collection(db, "requests"), where("phone", "==", customerPhone.trim()));
+          const snap2 = await getDocs(q2);
+          byPhone = snap2.docs.map((d) => ({ id: d.id, ...d.data() }));
+        } catch (e) {
+          console.warn("phone query failed:", e);
+        }
+      }
+
+      // 3. دمج النتائج
+      const combined = mergeOrders(byUserId, byPhone);
+      setOrders(combined);
     } catch (error) {
       console.error("Fetch error:", error);
-      // محاولة احتياطية بدون orderBy
-      try {
-        const q2 = query(collection(db, "requests"), where("phone", "==", phoneNumber.trim()));
-        const snapshot2 = await getDocs(q2);
-        const data2 = snapshot2.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-        data2.sort((a, b) => {
-          const da = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
-          const dbb = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
-          return dbb - da;
-        });
-        setOrders(data2);
-      } catch (err2) {
-        console.error("Backup fetch error:", err2);
-        setErrorMessage("تعذر الوصول لطلباتك حاليًا. حاول مرة أخرى بعد قليل.");
-      }
+      setErrorMessage("تعذر الوصول لطلباتك حاليًا. حاول مرة أخرى بعد قليل.");
     } finally {
       setLoading(false);
     }
   };
 
-  // البحث للزوار بالموبايل
+  // البحث للزوار (بالموبايل بس)
   const handleGuestSearch = async () => {
     setErrorMessage("");
     if (!phone.trim()) {
@@ -133,10 +151,37 @@ export default function MyOrdersPage() {
       return;
     }
     setSearched(true);
-    await fetchOrdersByPhone(phone);
+    setLoading(true);
+    setOrders([]);
+    try {
+      const q = query(
+        collection(db, "requests"),
+        where("phone", "==", phone.trim()),
+        orderBy("createdAt", "desc")
+      );
+      const snapshot = await getDocs(q);
+      const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      setOrders(data);
+    } catch (error) {
+      console.error("Guest search error:", error);
+      try {
+        const q2 = query(collection(db, "requests"), where("phone", "==", phone.trim()));
+        const snapshot2 = await getDocs(q2);
+        const data2 = snapshot2.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        data2.sort((a, b) => {
+          const da = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
+          const dbb = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
+          return dbb - da;
+        });
+        setOrders(data2);
+      } catch (err2) {
+        setErrorMessage("تعذر الوصول لطلباتك حاليًا. حاول مرة أخرى بعد قليل.");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // عرض اللودينج
   if (checkingAuth) {
     return (
       <main className="min-h-screen bg-white text-gray-900 flex items-center justify-center" dir="rtl">
@@ -160,7 +205,7 @@ export default function MyOrdersPage() {
             <p className="text-gray-500 text-base md:text-lg max-w-2xl mx-auto leading-8">
               أهلاً <span className="font-bold text-gray-900">{customerData.name}</span> 👋
               <br />
-              ده تاريخ كل طلباتك المرتبطة برقم موبايلك: <span className="font-bold">{customerData.phone}</span>
+              ده تاريخ كل طلباتك
             </p>
           ) : (
             <p className="text-gray-500 text-base md:text-lg max-w-2xl mx-auto leading-8">
@@ -197,7 +242,6 @@ export default function MyOrdersPage() {
               </div>
             )}
 
-            {/* اقتراح إنشاء حساب */}
             <div className="mt-5 pt-5 border-t border-gray-200 text-center">
               <p className="text-gray-600 text-sm mb-2">
                 💡 اعمل حساب علشان تشوف طلباتك تلقائياً من غير ما تكتب رقمك كل مرة
@@ -215,14 +259,12 @@ export default function MyOrdersPage() {
           </div>
         )}
 
-        {/* عرض اللودينج */}
         {loading && (
           <div className="bg-gray-50 border border-gray-100 rounded-3xl p-10 text-center">
             <p className="text-gray-500 text-lg">جارٍ تحميل طلباتك...</p>
           </div>
         )}
 
-        {/* لا توجد نتائج */}
         {!loading && ((currentUser && customerData) || searched) && orders.length === 0 && !errorMessage && (
           <div className="bg-gray-50 border border-gray-100 rounded-3xl p-10 text-center">
             <p className="text-5xl mb-4">📭</p>
@@ -236,7 +278,6 @@ export default function MyOrdersPage() {
           </div>
         )}
 
-        {/* عرض الطلبات */}
         {!loading && orders.length > 0 && (
           <div className="space-y-5">
             <div className="flex items-center justify-between">

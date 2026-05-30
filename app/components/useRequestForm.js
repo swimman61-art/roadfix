@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { db } from "../firebase";
+import { db, auth } from "../firebase";
 import { collection, addDoc } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
 
 export const SERVICE_OPTIONS = [
   "بطارية",
@@ -15,7 +16,9 @@ export const SERVICE_OPTIONS = [
   "عطل",
 ];
 
-// كل منطق صفحة الطلب في مكان واحد
+const ADMIN_EMAIL = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase();
+const isAdminEmail = (email) => (email || "").toLowerCase().trim() === ADMIN_EMAIL;
+
 export function useRequestForm() {
   const searchParams = useSearchParams();
   const selectedServiceFromUrl = searchParams.get("service") || "";
@@ -31,6 +34,22 @@ export function useRequestForm() {
   const [successRequestNumber, setSuccessRequestNumber] = useState("");
   const [imagePreview, setImagePreview] = useState("");
 
+  // 🆕 حالة العميل المسجّل دخول
+  const [currentCustomer, setCurrentCustomer] = useState(null);
+
+  // متابعة حالة الدخول
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      // نعتبر العميل بس (مش الأدمن)
+      if (user && !isAdminEmail(user.email)) {
+        setCurrentCustomer(user);
+      } else {
+        setCurrentCustomer(null);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
   useEffect(() => {
     if (
       selectedServiceFromUrl &&
@@ -41,49 +60,32 @@ export function useRequestForm() {
   }, [selectedServiceFromUrl]);
 
   const getLocationErrorMessage = (error) => {
-    if (!error) {
-      return "تعذر تحديد موقعك الآن، لكن لا تقلق، يمكنك كتابة عنوانك يدويًا وسيتم تسجيل الطلب بشكل طبيعي.";
-    }
-    if (error.code === 1) {
-      return "تم رفض إذن الموقع. يمكنك السماح بإذن الموقع من المتصفح، أو ببساطة كتابة عنوانك يدويًا وإكمال الطلب.";
-    }
-    if (error.code === 2) {
-      return "تعذر الوصول لموقعك حاليًا. اكتب عنوانك يدويًا بشكل واضح وسيتم استلام الطلب عادي.";
-    }
-    if (error.code === 3) {
-      return "استغرق تحديد الموقع وقتًا أطول من اللازم. حاول مرة أخرى أو اكتب عنوانك يدويًا في الخانة بالأسفل.";
-    }
+    if (!error) return "تعذر تحديد موقعك الآن، لكن لا تقلق، يمكنك كتابة عنوانك يدويًا وسيتم تسجيل الطلب بشكل طبيعي.";
+    if (error.code === 1) return "تم رفض إذن الموقع. يمكنك السماح بإذن الموقع من المتصفح، أو ببساطة كتابة عنوانك يدويًا وإكمال الطلب.";
+    if (error.code === 2) return "تعذر الوصول لموقعك حاليًا. اكتب عنوانك يدويًا بشكل واضح وسيتم استلام الطلب عادي.";
+    if (error.code === 3) return "استغرق تحديد الموقع وقتًا أطول من اللازم. حاول مرة أخرى أو اكتب عنوانك يدويًا في الخانة بالأسفل.";
     return "تعذر تحديد موقعك الآن. اكتب عنوانك يدويًا في الخانة بالأسفل وسيتم إرسال الطلب بشكل طبيعي.";
   };
 
   const getLocation = () => {
     if (!navigator.geolocation) {
-      setLocationMessage(
-        "هذا المتصفح لا يدعم تحديد الموقع. اكتب عنوانك يدويًا بالأسفل وسيتم إرسال الطلب بشكل طبيعي."
-      );
+      setLocationMessage("هذا المتصفح لا يدعم تحديد الموقع. اكتب عنوانك يدويًا بالأسفل وسيتم إرسال الطلب بشكل طبيعي.");
       return;
     }
-
     setLoadingLocation(true);
     setLocationMessage("");
     setFormMessage({ type: "", text: "" });
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setLocation({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        });
+        setLocation({ lat: position.coords.latitude, lng: position.coords.longitude });
         setLoadingLocation(false);
         setLocationMessage("تم تحديد موقعك بنجاح ✅");
       },
       (firstError) => {
         navigator.geolocation.getCurrentPosition(
           (position) => {
-            setLocation({
-              lat: position.coords.latitude,
-              lng: position.coords.longitude,
-            });
+            setLocation({ lat: position.coords.latitude, lng: position.coords.longitude });
             setLoadingLocation(false);
             setLocationMessage("تم تحديد موقعك بنجاح ✅");
           },
@@ -116,20 +118,13 @@ export function useRequestForm() {
   const handleImageChange = (e) => {
     const file = e.target.files?.[0] || null;
     setSelectedImage(file);
-    if (file) {
-      setImagePreview(URL.createObjectURL(file));
-    } else {
-      setImagePreview("");
-    }
+    if (file) setImagePreview(URL.createObjectURL(file));
+    else setImagePreview("");
   };
 
   const messageBoxClass = useMemo(() => {
-    if (formMessage.type === "success") {
-      return "mb-6 bg-green-50 border border-green-200 rounded-2xl p-4 text-green-700";
-    }
-    if (formMessage.type === "error") {
-      return "mb-6 bg-red-50 border border-red-200 rounded-2xl p-4 text-red-700";
-    }
+    if (formMessage.type === "success") return "mb-6 bg-green-50 border border-green-200 rounded-2xl p-4 text-green-700";
+    if (formMessage.type === "error") return "mb-6 bg-red-50 border border-red-200 rounded-2xl p-4 text-red-700";
     return "";
   }, [formMessage.type]);
 
@@ -173,7 +168,8 @@ export function useRequestForm() {
       setSubmitting(true);
       const requestNumber = generateRequestNumber();
 
-      await addDoc(collection(db, "requests"), {
+      // 🆕 لو فيه عميل مسجّل دخول، نربط الطلب بحسابه
+      const orderData = {
         requestNumber,
         service,
         name,
@@ -190,7 +186,12 @@ export function useRequestForm() {
         imageName: selectedImage ? selectedImage.name : null,
         imageUrl: null,
         createdAt: new Date(),
-      });
+        // 🆕 ربط الطلب بحساب العميل لو موجود
+        userId: currentCustomer ? currentCustomer.uid : null,
+        userEmail: currentCustomer ? currentCustomer.email : null,
+      };
+
+      await addDoc(collection(db, "requests"), orderData);
 
       setSuccessRequestNumber(requestNumber);
       setFormMessage({
@@ -213,7 +214,6 @@ export function useRequestForm() {
     }
   };
 
-  // نرجّع كل اللي الفورم محتاجه
   return {
     service, setService,
     location,
@@ -229,5 +229,6 @@ export function useRequestForm() {
     handleImageChange,
     handleSubmit,
     messageBoxClass,
+    currentCustomer, // 🆕 نرجّعه عشان نوريه في الواجهة لو محتاجين
   };
 }
