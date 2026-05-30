@@ -15,6 +15,7 @@ export default function RequestCard({
   editPrice, setEditPrice,
   editNotes, setEditNotes,
   savingId,
+  moderatingId,
   copyRequestNumber,
   startEditing,
   saveNotesAndPrice,
@@ -24,13 +25,24 @@ export default function RequestCard({
   sendWhatsAppToClient,
   formatDateTime,
   getCustomerOrders,
+  approveComment,
+  rejectComment,
 }) {
   const [showHistory, setShowHistory] = useState(false);
 
-  // كل طلبات العميل ده (بنفس رقم الموبايل)
   const customerOrders = getCustomerOrders ? getCustomerOrders(request.phone) : [];
   const totalOrders = customerOrders.length;
-  const isReturning = totalOrders > 1; // عميل متكرر لو عنده أكتر من طلب
+  const isReturning = totalOrders > 1;
+
+  // 🆕 معلومات التعليق
+  const hasComment = !!request.customerComment;
+  const commentStatus = request.commentStatus || "pending";
+
+  const getCommentBadge = (status) => {
+    if (status === "approved") return { text: "✅ منشور", className: "bg-green-100 text-green-800 border-green-300" };
+    if (status === "rejected") return { text: "❌ مرفوض", className: "bg-red-100 text-red-800 border-red-300" };
+    return { text: "⏳ بانتظار الموافقة", className: "bg-yellow-100 text-yellow-800 border-yellow-300" };
+  };
 
   return (
     <div className="bg-white border border-gray-200 rounded-3xl p-5 md:p-6 shadow-sm hover:shadow-lg hover:border-gray-300 transition">
@@ -47,7 +59,6 @@ export default function RequestCard({
                   {request.service || "غير محدد"}
                 </span>
 
-                {/* شارة العميل المتكرر */}
                 {isReturning ? (
                   <span className="px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-800 border border-purple-300">
                     ⭐ عميل متكرر · {totalOrders} طلبات
@@ -55,6 +66,13 @@ export default function RequestCard({
                 ) : (
                   <span className="px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-600 border border-gray-300">
                     عميل جديد
+                  </span>
+                )}
+
+                {/* 🆕 شارة تنبيه لو فيه تعليق pending */}
+                {hasComment && commentStatus === "pending" && (
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-800 border border-orange-300 animate-pulse">
+                    🔔 تعليق جديد!
                   </span>
                 )}
               </div>
@@ -66,7 +84,6 @@ export default function RequestCard({
                   {copiedId === request.id ? "تم النسخ ✅" : "نسخ"}
                 </button>
 
-                {/* زرار عرض الطلبات السابقة */}
                 {isReturning && (
                   <button onClick={() => setShowHistory(true)}
                     className="bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs px-3 py-1 rounded-lg border border-purple-200 transition font-bold">
@@ -81,7 +98,6 @@ export default function RequestCard({
             </span>
           </div>
 
-          {/* Details Grid */}
           <div className="grid md:grid-cols-2 gap-3 text-sm">
             {[
               { label: "الخدمة", value: request.service },
@@ -96,13 +112,11 @@ export default function RequestCard({
             ))}
           </div>
 
-          {/* Description */}
           <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4">
             <p className="text-gray-400 mb-2">وصف العطل</p>
             <p className="text-gray-900 leading-8">{request.description || "لا يوجد وصف"}</p>
           </div>
 
-          {/* Location */}
           {(request.location || request.manualAddress) && (
             <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4">
               <p className="text-gray-500 mb-2 font-bold">📍 العنوان</p>
@@ -117,7 +131,6 @@ export default function RequestCard({
             </div>
           )}
 
-          {/* السعر والملاحظات */}
           <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4">
             <div className="flex items-center justify-between mb-3">
               <p className="text-amber-800 font-bold">💰 السعر والملاحظات</p>
@@ -166,6 +179,66 @@ export default function RequestCard({
             )}
           </div>
 
+          {/* 🆕 ===== تعليق العميل ===== */}
+          {hasComment && (
+            <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-4">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-blue-800 font-bold flex items-center gap-2">
+                  💬 تعليق العميل
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${getCommentBadge(commentStatus).className}`}>
+                    {getCommentBadge(commentStatus).text}
+                  </span>
+                </p>
+              </div>
+
+              <div className="bg-white border border-blue-100 rounded-xl p-4 mb-3">
+                <p className="text-gray-900 leading-8 mb-2">"{request.customerComment}"</p>
+                <p className="text-gray-400 text-xs">
+                  بواسطة: {request.commentAuthor || request.name || "عميل"}
+                  {request.commentDate && ` · ${formatDateTime(request.commentDate)}`}
+                </p>
+              </div>
+
+              {/* أزرار الموافقة/الرفض */}
+              {commentStatus === "pending" && (
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => approveComment(request.id)}
+                    disabled={moderatingId === request.id}
+                    className="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-2.5 rounded-xl font-bold transition disabled:opacity-60 text-sm">
+                    {moderatingId === request.id ? "جارٍ..." : "✅ موافقة ونشر"}
+                  </button>
+                  <button
+                    onClick={() => rejectComment(request.id)}
+                    disabled={moderatingId === request.id}
+                    className="flex-1 bg-white hover:bg-red-50 text-red-600 border border-red-200 px-4 py-2.5 rounded-xl font-bold transition disabled:opacity-60 text-sm">
+                    ❌ رفض
+                  </button>
+                </div>
+              )}
+
+              {/* لو متوافق عليه، نسمح بالرفض */}
+              {commentStatus === "approved" && (
+                <button
+                  onClick={() => rejectComment(request.id)}
+                  disabled={moderatingId === request.id}
+                  className="bg-white hover:bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-xl font-bold transition disabled:opacity-60 text-sm">
+                  {moderatingId === request.id ? "جارٍ..." : "إلغاء النشر"}
+                </button>
+              )}
+
+              {/* لو مرفوض، نسمح بإعادة الموافقة */}
+              {commentStatus === "rejected" && (
+                <button
+                  onClick={() => approveComment(request.id)}
+                  disabled={moderatingId === request.id}
+                  className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-xl font-bold transition disabled:opacity-60 text-sm">
+                  {moderatingId === request.id ? "جارٍ..." : "إعادة الموافقة"}
+                </button>
+              )}
+            </div>
+          )}
+
         </div>
 
         {/* Actions */}
@@ -210,14 +283,13 @@ export default function RequestCard({
 
       </div>
 
-      {/* ===== نافذة الطلبات السابقة ===== */}
+      {/* نافذة الطلبات السابقة */}
       {showHistory && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
           onClick={() => setShowHistory(false)}>
           <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[80vh] overflow-y-auto shadow-2xl"
             onClick={(e) => e.stopPropagation()}>
 
-            {/* رأس النافذة */}
             <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between rounded-t-3xl">
               <div>
                 <h3 className="text-xl font-black">طلبات {request.name || "العميل"}</h3>
@@ -229,7 +301,6 @@ export default function RequestCard({
               </button>
             </div>
 
-            {/* قائمة الطلبات */}
             <div className="p-6 space-y-3">
               {customerOrders.map((o) => (
                 <div key={o.id}

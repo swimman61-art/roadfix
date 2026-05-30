@@ -73,6 +73,19 @@ export default function DashboardPage() {
           </div>
         )}
 
+        {/* 🆕 تنبيه التعليقات المعلّقة */}
+        {d.countPendingComments > 0 && (
+          <div className="mb-6 bg-orange-50 border-2 border-orange-200 rounded-2xl p-4 flex items-center gap-3 shadow-sm">
+            <span className="text-2xl">🔔</span>
+            <div className="flex-1">
+              <p className="font-black text-orange-900">
+                {d.countPendingComments} تعليق بانتظار الموافقة
+              </p>
+              <p className="text-orange-700 text-sm">دوّر في الطلبات على الكروت اللي عليها شارة "تعليق جديد!" برتقالية</p>
+            </div>
+          </div>
+        )}
+
         {/* Search */}
         <div className="mb-6">
           <input type="text" placeholder="🔍 ابحث بالاسم أو رقم الموبايل أو رقم الطلب..."
@@ -125,6 +138,7 @@ export default function DashboardPage() {
                 editNotes={d.editNotes}
                 setEditNotes={d.setEditNotes}
                 savingId={d.savingId}
+                moderatingId={d.moderatingId}
                 copyRequestNumber={d.copyRequestNumber}
                 startEditing={d.startEditing}
                 saveNotesAndPrice={d.saveNotesAndPrice}
@@ -134,6 +148,8 @@ export default function DashboardPage() {
                 sendWhatsAppToClient={d.sendWhatsAppToClient}
                 formatDateTime={d.formatDateTime}
                 getCustomerOrders={d.getCustomerOrders}
+                approveComment={d.approveComment}
+                rejectComment={d.rejectComment}
               />
             ))}
           </div>

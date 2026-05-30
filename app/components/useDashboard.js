@@ -37,6 +37,9 @@ export function useDashboard() {
   const [editNotes, setEditNotes] = useState("");
   const [savingId, setSavingId] = useState("");
 
+  // 🆕 حالة موافقة التعليق
+  const [moderatingId, setModeratingId] = useState("");
+
   const previousCountRef = useRef(0);
   const firstLoadRef = useRef(true);
 
@@ -143,6 +146,50 @@ export function useDashboard() {
     }
   };
 
+  // 🆕 الموافقة على التعليق
+  const approveComment = async (id) => {
+    try {
+      setModeratingId(id);
+      await updateDoc(doc(db, "requests", id), {
+        commentStatus: "approved",
+        commentModeratedAt: new Date(),
+      });
+      setRequests((prev) =>
+        prev.map((req) =>
+          req.id === id ? { ...req, commentStatus: "approved" } : req
+        )
+      );
+    } catch (error) {
+      console.error("Approve error:", error);
+      alert("حصل خطأ أثناء الموافقة");
+    } finally {
+      setModeratingId("");
+    }
+  };
+
+  // 🆕 رفض التعليق
+  const rejectComment = async (id) => {
+    const confirmed = window.confirm("هل أنت متأكد من رفض هذا التعليق؟");
+    if (!confirmed) return;
+    try {
+      setModeratingId(id);
+      await updateDoc(doc(db, "requests", id), {
+        commentStatus: "rejected",
+        commentModeratedAt: new Date(),
+      });
+      setRequests((prev) =>
+        prev.map((req) =>
+          req.id === id ? { ...req, commentStatus: "rejected" } : req
+        )
+      );
+    } catch (error) {
+      console.error("Reject error:", error);
+      alert("حصل خطأ أثناء الرفض");
+    } finally {
+      setModeratingId("");
+    }
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!user) { router.replace("/login"); setAuthLoading(false); return; }
@@ -188,6 +235,11 @@ export function useDashboard() {
   const countProgress = requests.filter((r) => r.status === "in-progress").length;
   const countDone = requests.filter((r) => r.status === "done").length;
 
+  // 🆕 عدد التعليقات اللي بانتظار الموافقة
+  const countPendingComments = requests.filter(
+    (r) => r.customerComment && r.commentStatus === "pending"
+  ).length;
+
   const serviceCounts = useMemo(() => {
     const counts = {};
     requests.forEach((r) => { const s = r.service || "غير محدد"; counts[s] = (counts[s] || 0) + 1; });
@@ -200,8 +252,6 @@ export function useDashboard() {
     return entries.sort((a, b) => b[1] - a[1])[0][0];
   }, [serviceCounts]);
 
-  // ===== جديد: تاريخ كل عميل حسب رقم الموبايل =====
-  // بنجمّع كل الطلبات حسب رقم الموبايل، عشان نعرف كل عميل طلب كام مرة
   const ordersByPhone = useMemo(() => {
     const map = {};
     requests.forEach((r) => {
@@ -213,7 +263,6 @@ export function useDashboard() {
     return map;
   }, [requests]);
 
-  // دالة بترجّع كل طلبات عميل معيّن (مرتبة من الأحدث)
   const getCustomerOrders = (phone) => {
     const list = ordersByPhone[(phone || "").trim()] || [];
     return [...list].sort((a, b) => {
@@ -238,6 +287,7 @@ export function useDashboard() {
     editPrice, setEditPrice,
     editNotes, setEditNotes,
     savingId,
+    moderatingId, // 🆕
     updateStatus,
     saveNotesAndPrice,
     handleDelete,
@@ -246,10 +296,13 @@ export function useDashboard() {
     startEditing,
     sendWhatsAppToClient,
     formatDateTime,
+    approveComment, // 🆕
+    rejectComment, // 🆕
     filteredRequests,
     countNew,
     countProgress,
     countDone,
+    countPendingComments, // 🆕
     topService,
     getCustomerOrders,
   };
