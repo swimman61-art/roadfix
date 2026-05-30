@@ -36,6 +36,91 @@ export default function RequestForm() {
     }
   };
 
+  // 🆕 لو الطلب اتبعت بنجاح، نوري شاشة التأكيد بس
+  if (successRequestNumber) {
+    return (
+      <main className="min-h-screen bg-white text-gray-900 px-4 py-12 md:px-6 flex items-center justify-center" dir="rtl">
+        <div className="max-w-2xl w-full">
+
+          {/* ===== شاشة تأكيد الطلب ===== */}
+          <div className="bg-white border-2 border-green-300 rounded-3xl p-8 md:p-10 shadow-xl text-center">
+
+            {/* علامة النجاح */}
+            <div className="w-24 h-24 mx-auto mb-6 bg-green-100 rounded-full flex items-center justify-center">
+              <svg className="w-14 h-14 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+
+            <h1 className="text-3xl md:text-4xl font-black text-green-700 mb-3">
+              تم استلام طلبك ✅
+            </h1>
+            <p className="text-gray-600 text-base md:text-lg leading-8 mb-8">
+              الفني هيتواصل معاك في أسرع وقت ممكن.
+              <br />
+              {currentCustomer ? "تقدر تتابع حالة الطلب من صفحة طلباتي." : "احفظ رقم الطلب علشان تتابع حالته."}
+            </p>
+
+            {/* تنبيه للزائر */}
+            {!currentCustomer && (
+              <div className="bg-yellow-50 border-2 border-yellow-300 rounded-2xl p-5 mb-6 text-right">
+                <p className="text-yellow-900 font-black text-base mb-2 flex items-center gap-2">
+                  ⚠️ مهم جداً — احفظ رقم الطلب
+                </p>
+                <p className="text-yellow-800 text-sm leading-7">
+                  صوّر الشاشة أو انسخ الرقم.
+                  <br />
+                  <span className="font-bold">أو اعمل حساب دلوقتي عشان طلباتك تتحفظ تلقائياً.</span>
+                </p>
+              </div>
+            )}
+
+            {/* رقم الطلب */}
+            <div className="bg-gray-50 border-2 border-gray-200 rounded-2xl p-6 mb-6">
+              <p className="text-sm text-gray-500 mb-2 font-bold">رقم الطلب</p>
+              <p className="text-3xl md:text-4xl font-black text-gray-900 tracking-wider mb-4 break-all">
+                {successRequestNumber}
+              </p>
+              <button
+                onClick={copyRequestNumber}
+                className="bg-gray-900 hover:bg-gray-800 text-white text-sm px-5 py-2.5 rounded-xl font-bold transition">
+                📋 نسخ الرقم
+              </button>
+            </div>
+
+            {/* الأزرار */}
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <a href={`/my-orders?ref=${successRequestNumber}`}
+                className="bg-green-500 hover:bg-green-600 text-white px-6 py-4 rounded-2xl font-black transition shadow-lg shadow-green-500/20">
+                🔍 تتبع الطلب
+              </a>
+
+              {!currentCustomer && (
+                <a href="/signup"
+                  className="bg-red-500 hover:bg-red-600 text-white px-6 py-4 rounded-2xl font-black transition shadow-lg shadow-red-500/20">
+                  اعمل حساب احفظ طلباتك ←
+                </a>
+              )}
+
+              <a href="/"
+                className="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-6 py-4 rounded-2xl font-bold transition">
+                الرئيسية
+              </a>
+            </div>
+
+            {/* رابط طلب جديد */}
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-6 text-gray-500 hover:text-gray-700 text-sm font-bold underline transition">
+              عاوز تعمل طلب جديد؟
+            </button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  // ===== الشاشة الأصلية (الفورم) =====
   return (
     <main className="min-h-screen bg-white text-gray-900 px-4 py-12 md:px-6" dir="rtl">
       <div className="max-w-5xl mx-auto">
@@ -49,50 +134,10 @@ export default function RequestForm() {
           </p>
         </div>
 
-        {/* رسالة النجاح / الخطأ */}
-        {formMessage.text && (
+        {/* رسالة الخطأ بس (مفيش رسالة نجاح هنا) */}
+        {formMessage.text && formMessage.type === "error" && (
           <div className={messageBoxClass}>
             <p className="font-bold">{formMessage.text}</p>
-
-            {successRequestNumber && (
-              <div className="mt-4 bg-white border-2 border-green-300 rounded-2xl p-5 shadow-sm">
-                {!currentCustomer && (
-                  <div className="bg-yellow-50 border-2 border-yellow-300 rounded-xl p-4 mb-4">
-                    <p className="text-yellow-900 font-black text-base mb-1 flex items-center gap-2">
-                      ⚠️ مهم جداً — احفظ رقم الطلب
-                    </p>
-                    <p className="text-yellow-800 text-sm leading-7">
-                      رقم الطلب ده هو طريقتك الوحيدة لمتابعة طلبك. صوّر الشاشة أو انسخ الرقم واحتفظ بيه في مكان آمن.
-                      <br />
-                      <span className="font-bold">أو اعمل حساب دلوقتي عشان طلباتك تتحفظ تلقائياً.</span>
-                    </p>
-                  </div>
-                )}
-
-                <p className="text-sm text-gray-500 mb-2">رقم الطلب</p>
-                <div className="flex flex-wrap items-center gap-3 mb-4">
-                  <p className="text-3xl font-black text-gray-900 tracking-wider">{successRequestNumber}</p>
-                  <button
-                    onClick={copyRequestNumber}
-                    className="bg-gray-900 hover:bg-gray-800 text-white text-sm px-4 py-2 rounded-xl font-bold transition">
-                    📋 نسخ الرقم
-                  </button>
-                </div>
-
-                <div className="flex flex-wrap gap-3">
-                  <a href={`/my-orders?ref=${successRequestNumber}`}
-                    className="inline-block bg-green-500 hover:bg-green-600 text-white px-5 py-3 rounded-xl font-bold transition">
-                    تتبع الطلب 🔍
-                  </a>
-                  {!currentCustomer && (
-                    <a href="/signup"
-                      className="inline-block bg-red-500 hover:bg-red-600 text-white px-5 py-3 rounded-xl font-bold transition">
-                      اعمل حساب احفظ طلباتك ←
-                    </a>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
         )}
 
@@ -106,7 +151,6 @@ export default function RequestForm() {
                 <p className="text-gray-500 mt-2">املى البيانات الأساسية والعنوان وطريقة الدفع</p>
               </div>
 
-              {/* 🆕 رسالة ترحيب للعميل المسجّل */}
               {currentCustomer && (
                 <div className="bg-green-50 border border-green-200 rounded-2xl px-5 py-4">
                   <p className="text-sm text-green-700 mb-1 font-bold">أهلاً بيك تاني 👋</p>
