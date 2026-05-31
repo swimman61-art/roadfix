@@ -5,13 +5,26 @@ const WHATSAPP_LINK = `https://wa.me/${WHATSAPP_NUMBER}?text=مرحبا، عند
 
 export default function Hero() {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-red-950 text-white min-h-screen flex items-center">
-      <div className="absolute inset-0 opacity-10">
+    <section className="relative overflow-hidden text-white min-h-screen flex items-center">
+
+      {/* 🆕 صورة الخلفية */}
+      <div
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: "url('/images/night-service.jpg')" }}
+      />
+
+      {/* 🆕 طبقة تغميق فوق الصورة (overlay) */}
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-900/95 via-slate-900/85 to-red-950/90" />
+
+      {/* الأضواء الملونة الأصلية */}
+      <div className="absolute inset-0 opacity-20">
         <div className="absolute top-0 left-0 w-[600px] h-[600px] rounded-full bg-red-500 blur-[120px] -translate-x-1/2 -translate-y-1/2" />
         <div className="absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full bg-orange-500 blur-[100px] translate-x-1/3 translate-y-1/3" />
       </div>
+
+      {/* النقط الخلفية */}
       <div className="absolute inset-0 opacity-5"
-        style={{backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '32px 32px'}} />
+        style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
 
       <div className="relative z-10 max-w-6xl mx-auto px-4 py-24 w-full">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
