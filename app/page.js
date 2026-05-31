@@ -1,5 +1,6 @@
 import WhatsAppButton from "./components/WhatsAppButton";
 import Hero from "./components/Hero";
+import RealServices from "./components/RealServices";
 import Features from "./components/Features";
 import Comparison from "./components/Comparison";
 import Services from "./components/Services";
@@ -18,6 +19,7 @@ export default function HomePage() {
     <main dir="rtl" className="min-h-screen bg-white text-gray-900 overflow-x-hidden">
       <WhatsAppButton />
       <Hero />
+      <RealServices />
       <Features />
       <Comparison />
       <Services />
