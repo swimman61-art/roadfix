@@ -42,11 +42,20 @@ export const metadata = {
     title: "RoadFix — فني سيارات متنقل في القاهرة",
     description:
       "فني متخصص يجي لموقعك في 15 دقيقة. بطارية، كاوتش، بنزين، كهرباء، ميكانيكا. متاح 24/7 في القاهرة.",
+    images: [
+      {
+        url: "/images/night-service.jpg",
+        width: 1200,
+        height: 630,
+        alt: "RoadFix - خدمة إصلاح سيارات متنقلة 24/7",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "RoadFix — فني سيارات متنقل في القاهرة",
     description: "فني متخصص يجي لموقعك في 15 دقيقة. متاح 24/7.",
+    images: ["/images/night-service.jpg"],
   },
   robots: {
     index: true,
