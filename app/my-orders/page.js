@@ -21,9 +21,10 @@ export default function MyOrdersPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // 🆕 حالة التعليقات
-  const [commentingId, setCommentingId] = useState(""); // الطلب اللي بنكتب عليه تعليق
+  const [commentingId, setCommentingId] = useState("");
   const [commentText, setCommentText] = useState("");
+  const [commentRating, setCommentRating] = useState(0); // 🆕 التقييم
+  const [hoverRating, setHoverRating] = useState(0); // 🆕 hover effect
   const [savingComment, setSavingComment] = useState(false);
 
   useEffect(() => {
@@ -83,7 +84,6 @@ export default function MyOrdersPage() {
     return "100%";
   };
 
-  // 🆕 شارة حالة التعليق
   const getCommentStatusBadge = (commentStatus) => {
     if (commentStatus === "approved") return { text: "✅ تم النشر", className: "bg-green-100 text-green-800 border border-green-300" };
     if (commentStatus === "rejected") return { text: "❌ مرفوض", className: "bg-red-100 text-red-800 border border-red-300" };
@@ -137,21 +137,14 @@ export default function MyOrdersPage() {
   const handleGuestSearch = async () => {
     setErrorMessage("");
     const input = requestNumber.trim();
-
-    if (!input) {
-      setErrorMessage("من فضلك اكتب رقم الطلب.");
-      return;
-    }
-
+    if (!input) { setErrorMessage("من فضلك اكتب رقم الطلب."); return; }
     if (!isRequestNumber(input)) {
       setErrorMessage("صيغة رقم الطلب غير صحيحة. الصيغة المظبوطة: RF-1234567890");
       return;
     }
-
     setSearched(true);
     setLoading(true);
     setOrders([]);
-
     try {
       const q = query(collection(db, "requests"), where("requestNumber", "==", input));
       const snapshot = await getDocs(q);
@@ -165,34 +158,33 @@ export default function MyOrdersPage() {
     }
   };
 
-  // 🆕 فتح فورم كتابة التعليق
-  const startCommenting = (orderId, existingComment) => {
+  const startCommenting = (orderId, existingComment, existingRating) => {
     setCommentingId(orderId);
     setCommentText(existingComment || "");
+    setCommentRating(existingRating || 0); // 🆕
+    setHoverRating(0);
   };
 
-  // 🆕 حفظ التعليق
   const saveComment = async (orderId) => {
     const text = commentText.trim();
-    if (!text) {
-      alert("اكتب تعليقك أولاً");
-      return;
-    }
-    if (text.length < 10) {
-      alert("التعليق قصير جداً، اكتب على الأقل 10 حروف");
-      return;
-    }
+    if (!text) { alert("اكتب تعليقك أولاً"); return; }
+    if (text.length < 10) { alert("التعليق قصير جداً، اكتب على الأقل 10 حروف"); return; }
 
     try {
       setSavingComment(true);
-      await updateDoc(doc(db, "requests", orderId), {
+      // 🆕 نحفظ التعليق + التقييم (لو موجود)
+      const updateData = {
         customerComment: text,
-        commentStatus: "pending", // بانتظار موافقة الأدمن
+        commentStatus: "pending",
         commentDate: new Date(),
         commentAuthor: customerData?.name || "عميل",
-      });
+      };
+      if (commentRating > 0) {
+        updateData.customerRating = commentRating;
+      }
 
-      // تحديث الـ state محلياً
+      await updateDoc(doc(db, "requests", orderId), updateData);
+
       setOrders((prev) =>
         prev.map((o) =>
           o.id === orderId
@@ -202,6 +194,7 @@ export default function MyOrdersPage() {
                 commentStatus: "pending",
                 commentDate: new Date(),
                 commentAuthor: customerData?.name || "عميل",
+                customerRating: commentRating > 0 ? commentRating : o.customerRating,
               }
             : o
         )
@@ -209,6 +202,8 @@ export default function MyOrdersPage() {
 
       setCommentingId("");
       setCommentText("");
+      setCommentRating(0);
+      setHoverRating(0);
       alert("تم إرسال تعليقك ✅ هيظهر بعد موافقة الإدارة");
     } catch (error) {
       console.error("Save comment error:", error);
@@ -250,7 +245,6 @@ export default function MyOrdersPage() {
           )}
         </div>
 
-        {/* للزوار */}
         {!currentUser && (
           <>
             <div className="bg-gray-50 border border-gray-100 rounded-3xl p-6 md:p-8 shadow-sm mb-6">
@@ -264,14 +258,11 @@ export default function MyOrdersPage() {
                   onKeyDown={(e) => { if (e.key === "Enter") handleGuestSearch(); }}
                   className="flex-1 p-4 rounded-2xl bg-white border border-slate-400 text-gray-900 outline-none focus:border-red-500 transition placeholder:text-gray-400"
                 />
-                <button
-                  onClick={handleGuestSearch}
-                  disabled={loading}
+                <button onClick={handleGuestSearch} disabled={loading}
                   className="bg-red-500 hover:bg-red-600 text-white px-8 py-4 rounded-2xl font-black transition disabled:opacity-60">
                   {loading ? "جارٍ البحث..." : "بحث"}
                 </button>
               </div>
-
               {errorMessage && (
                 <div className="mt-4 bg-red-50 border border-red-200 rounded-2xl p-4">
                   <p className="text-red-700 font-bold">{errorMessage}</p>
@@ -288,12 +279,10 @@ export default function MyOrdersPage() {
                     لو نسيت رقم الطلب، اعمل حساب جديد بنفس رقم الموبايل اللي طلبت بيه قبل كده — هتلاقي كل طلباتك السابقة في حسابك تلقائياً.
                   </p>
                   <div className="flex flex-wrap gap-3">
-                    <Link href="/signup"
-                      className="inline-block bg-red-500 hover:bg-red-600 text-white px-5 py-3 rounded-xl font-bold transition text-sm">
+                    <Link href="/signup" className="inline-block bg-red-500 hover:bg-red-600 text-white px-5 py-3 rounded-xl font-bold transition text-sm">
                       اعمل حساب جديد ←
                     </Link>
-                    <Link href="/login"
-                      className="inline-block bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-5 py-3 rounded-xl font-bold transition text-sm">
+                    <Link href="/login" className="inline-block bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-5 py-3 rounded-xl font-bold transition text-sm">
                       عندي حساب، سجّل دخول
                     </Link>
                   </div>
@@ -378,14 +367,12 @@ export default function MyOrdersPage() {
                     </div>
                   )}
 
-                  {/* 🆕 قسم التعليقات — يظهر للعملاء المسجّلين على الطلبات المكتملة */}
                   {currentUser && isDone && (
                     <div className="mt-4 pt-4 border-t border-gray-100">
                       {!hasComment && !isEditing && (
-                        <button
-                          onClick={() => startCommenting(order.id, "")}
+                        <button onClick={() => startCommenting(order.id, "", 0)}
                           className="w-full bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-4 py-3 rounded-xl font-bold transition text-sm">
-                          💬 اكتب تعليق عن الخدمة
+                          💬 اكتب تعليق وقيّم الخدمة
                         </button>
                       )}
 
@@ -397,12 +384,24 @@ export default function MyOrdersPage() {
                               {commentBadge.text}
                             </span>
                           </div>
+
+                          {/* 🆕 عرض التقييم */}
+                          {order.customerRating > 0 && (
+                            <div className="flex items-center gap-1 mb-2">
+                              {[1, 2, 3, 4, 5].map((s) => (
+                                <span key={s} className={`text-lg ${s <= order.customerRating ? "text-yellow-400" : "text-gray-300"}`}>
+                                  ★
+                                </span>
+                              ))}
+                              <span className="text-gray-500 text-xs mr-2">({order.customerRating}/5)</span>
+                            </div>
+                          )}
+
                           <p className="text-gray-900 text-sm leading-7 mb-3">{order.customerComment}</p>
                           {order.commentStatus !== "rejected" && (
-                            <button
-                              onClick={() => startCommenting(order.id, order.customerComment)}
+                            <button onClick={() => startCommenting(order.id, order.customerComment, order.customerRating || 0)}
                               className="text-xs text-red-500 hover:text-red-600 font-bold">
-                              تعديل التعليق
+                              تعديل
                             </button>
                           )}
                         </div>
@@ -410,6 +409,33 @@ export default function MyOrdersPage() {
 
                       {isEditing && (
                         <div className="space-y-3">
+                          {/* 🆕 اختيار التقييم بالنجوم */}
+                          <div className="bg-gray-50 border border-gray-100 rounded-xl p-4">
+                            <p className="text-sm text-gray-600 font-bold mb-3">قيّم الخدمة (اختياري)</p>
+                            <div className="flex items-center gap-2">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <button
+                                  key={star}
+                                  type="button"
+                                  onClick={() => setCommentRating(star === commentRating ? 0 : star)}
+                                  onMouseEnter={() => setHoverRating(star)}
+                                  onMouseLeave={() => setHoverRating(0)}
+                                  className="text-3xl transition-transform hover:scale-110">
+                                  <span className={
+                                    star <= (hoverRating || commentRating)
+                                      ? "text-yellow-400"
+                                      : "text-gray-300"
+                                  }>
+                                    ★
+                                  </span>
+                                </button>
+                              ))}
+                              {commentRating > 0 && (
+                                <span className="text-sm text-gray-500 mr-2">({commentRating}/5)</span>
+                              )}
+                            </div>
+                          </div>
+
                           <textarea
                             value={commentText}
                             onChange={(e) => setCommentText(e.target.value)}
@@ -419,14 +445,11 @@ export default function MyOrdersPage() {
                           />
                           <p className="text-xs text-gray-400">{commentText.length}/500 حرف</p>
                           <div className="flex gap-3">
-                            <button
-                              onClick={() => saveComment(order.id)}
-                              disabled={savingComment}
+                            <button onClick={() => saveComment(order.id)} disabled={savingComment}
                               className="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-xl font-bold transition disabled:opacity-60 text-sm">
-                              {savingComment ? "جارٍ الحفظ..." : "إرسال التعليق"}
+                              {savingComment ? "جارٍ الحفظ..." : "إرسال"}
                             </button>
-                            <button
-                              onClick={() => { setCommentingId(""); setCommentText(""); }}
+                            <button onClick={() => { setCommentingId(""); setCommentText(""); setCommentRating(0); }}
                               className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-5 py-2 rounded-xl font-bold transition text-sm">
                               إلغاء
                             </button>
@@ -439,7 +462,6 @@ export default function MyOrdersPage() {
                     </div>
                   )}
 
-                  {/* للعملاء المسجّلين على طلبات لسه شغالة */}
                   {currentUser && !isDone && (
                     <div className="mt-4 pt-4 border-t border-gray-100">
                       <p className="text-gray-400 text-xs text-center">

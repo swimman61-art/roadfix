@@ -4,13 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { db, auth } from "../firebase";
 import {
-  collection,
-  query,
-  orderBy,
-  doc,
-  updateDoc,
-  deleteDoc,
-  onSnapshot,
+  collection, query, orderBy, doc, updateDoc, deleteDoc, onSnapshot,
 } from "firebase/firestore";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 
@@ -37,7 +31,6 @@ export function useDashboard() {
   const [editNotes, setEditNotes] = useState("");
   const [savingId, setSavingId] = useState("");
 
-  // 🆕 حالة موافقة التعليق
   const [moderatingId, setModeratingId] = useState("");
 
   const previousCountRef = useRef(0);
@@ -50,12 +43,8 @@ export function useDashboard() {
     else newStatus = "done";
     try {
       await updateDoc(doc(db, "requests", id), { status: newStatus });
-      setRequests((prev) =>
-        prev.map((req) => req.id === id ? { ...req, status: newStatus } : req)
-      );
-    } catch (error) {
-      console.error("Error updating status:", error);
-    }
+      setRequests((prev) => prev.map((req) => req.id === id ? { ...req, status: newStatus } : req));
+    } catch (error) { console.error("Error updating status:", error); }
   };
 
   const saveNotesAndPrice = async (id) => {
@@ -66,17 +55,11 @@ export function useDashboard() {
         adminNotes: editNotes || null,
       });
       setRequests((prev) =>
-        prev.map((req) =>
-          req.id === id ? { ...req, adminPrice: editPrice, adminNotes: editNotes } : req
-        )
+        prev.map((req) => req.id === id ? { ...req, adminPrice: editPrice, adminNotes: editNotes } : req)
       );
       setEditingId("");
-    } catch (error) {
-      console.error("Save error:", error);
-      alert("حصل خطأ أثناء الحفظ");
-    } finally {
-      setSavingId("");
-    }
+    } catch (error) { alert("حصل خطأ أثناء الحفظ"); }
+    finally { setSavingId(""); }
   };
 
   const handleDelete = async (id, requestNumber) => {
@@ -86,11 +69,8 @@ export function useDashboard() {
       setDeletingId(id);
       await deleteDoc(doc(db, "requests", id));
       setRequests((prev) => prev.filter((req) => req.id !== id));
-    } catch (error) {
-      alert("حصلت مشكلة أثناء حذف الطلب");
-    } finally {
-      setDeletingId("");
-    }
+    } catch (error) { alert("حصلت مشكلة أثناء حذف الطلب"); }
+    finally { setDeletingId(""); }
   };
 
   const handleLogout = async () => {
@@ -98,11 +78,8 @@ export function useDashboard() {
       setLogoutLoading(true);
       await signOut(auth);
       router.replace("/login");
-    } catch (error) {
-      alert("حصلت مشكلة أثناء تسجيل الخروج");
-    } finally {
-      setLogoutLoading(false);
-    }
+    } catch (error) { alert("حصلت مشكلة أثناء تسجيل الخروج"); }
+    finally { setLogoutLoading(false); }
   };
 
   const copyRequestNumber = async (requestNumber, requestId) => {
@@ -111,9 +88,7 @@ export function useDashboard() {
       await navigator.clipboard.writeText(requestNumber);
       setCopiedId(requestId);
       setTimeout(() => setCopiedId(""), 2000);
-    } catch {
-      alert("تعذر نسخ رقم الطلب");
-    }
+    } catch { alert("تعذر نسخ رقم الطلب"); }
   };
 
   const startEditing = (request) => {
@@ -141,12 +116,9 @@ export function useDashboard() {
         year: "numeric", month: "long", day: "numeric",
         hour: "numeric", minute: "2-digit",
       }).format(date);
-    } catch {
-      return "غير متوفر";
-    }
+    } catch { return "غير متوفر"; }
   };
 
-  // 🆕 الموافقة على التعليق
   const approveComment = async (id) => {
     try {
       setModeratingId(id);
@@ -154,20 +126,11 @@ export function useDashboard() {
         commentStatus: "approved",
         commentModeratedAt: new Date(),
       });
-      setRequests((prev) =>
-        prev.map((req) =>
-          req.id === id ? { ...req, commentStatus: "approved" } : req
-        )
-      );
-    } catch (error) {
-      console.error("Approve error:", error);
-      alert("حصل خطأ أثناء الموافقة");
-    } finally {
-      setModeratingId("");
-    }
+      setRequests((prev) => prev.map((req) => req.id === id ? { ...req, commentStatus: "approved" } : req));
+    } catch (error) { alert("حصل خطأ أثناء الموافقة"); }
+    finally { setModeratingId(""); }
   };
 
-  // 🆕 رفض التعليق
   const rejectComment = async (id) => {
     const confirmed = window.confirm("هل أنت متأكد من رفض هذا التعليق؟");
     if (!confirmed) return;
@@ -177,17 +140,9 @@ export function useDashboard() {
         commentStatus: "rejected",
         commentModeratedAt: new Date(),
       });
-      setRequests((prev) =>
-        prev.map((req) =>
-          req.id === id ? { ...req, commentStatus: "rejected" } : req
-        )
-      );
-    } catch (error) {
-      console.error("Reject error:", error);
-      alert("حصل خطأ أثناء الرفض");
-    } finally {
-      setModeratingId("");
-    }
+      setRequests((prev) => prev.map((req) => req.id === id ? { ...req, commentStatus: "rejected" } : req));
+    } catch (error) { alert("حصل خطأ أثناء الرفض"); }
+    finally { setModeratingId(""); }
   };
 
   useEffect(() => {
@@ -235,10 +190,22 @@ export function useDashboard() {
   const countProgress = requests.filter((r) => r.status === "in-progress").length;
   const countDone = requests.filter((r) => r.status === "done").length;
 
-  // 🆕 عدد التعليقات اللي بانتظار الموافقة
   const countPendingComments = requests.filter(
     (r) => r.customerComment && r.commentStatus === "pending"
   ).length;
+
+  // 🆕 متوسط التقييمات (من التعليقات المعتمدة بس)
+  const averageRating = useMemo(() => {
+    const ratings = requests
+      .filter((r) => r.customerRating > 0 && r.commentStatus === "approved")
+      .map((r) => r.customerRating);
+    if (ratings.length === 0) return null;
+    const sum = ratings.reduce((acc, val) => acc + val, 0);
+    return {
+      average: (sum / ratings.length).toFixed(1),
+      count: ratings.length,
+    };
+  }, [requests]);
 
   const serviceCounts = useMemo(() => {
     const counts = {};
@@ -287,7 +254,7 @@ export function useDashboard() {
     editPrice, setEditPrice,
     editNotes, setEditNotes,
     savingId,
-    moderatingId, // 🆕
+    moderatingId,
     updateStatus,
     saveNotesAndPrice,
     handleDelete,
@@ -296,13 +263,14 @@ export function useDashboard() {
     startEditing,
     sendWhatsAppToClient,
     formatDateTime,
-    approveComment, // 🆕
-    rejectComment, // 🆕
+    approveComment,
+    rejectComment,
     filteredRequests,
     countNew,
     countProgress,
     countDone,
-    countPendingComments, // 🆕
+    countPendingComments,
+    averageRating, // 🆕
     topService,
     getCustomerOrders,
   };

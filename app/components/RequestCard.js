@@ -2,31 +2,16 @@
 
 import { useState } from "react";
 import {
-  getStatusLabel,
-  getStatusClass,
-  getServiceBadgeClass,
+  getStatusLabel, getStatusClass, getServiceBadgeClass,
 } from "./useDashboard";
 
 export default function RequestCard({
-  request,
-  copiedId,
-  deletingId,
-  editingId,
-  editPrice, setEditPrice,
-  editNotes, setEditNotes,
-  savingId,
-  moderatingId,
-  copyRequestNumber,
-  startEditing,
-  saveNotesAndPrice,
-  setEditingId,
-  updateStatus,
-  handleDelete,
-  sendWhatsAppToClient,
-  formatDateTime,
-  getCustomerOrders,
-  approveComment,
-  rejectComment,
+  request, copiedId, deletingId, editingId,
+  editPrice, setEditPrice, editNotes, setEditNotes,
+  savingId, moderatingId,
+  copyRequestNumber, startEditing, saveNotesAndPrice, setEditingId,
+  updateStatus, handleDelete, sendWhatsAppToClient, formatDateTime,
+  getCustomerOrders, approveComment, rejectComment,
 }) {
   const [showHistory, setShowHistory] = useState(false);
 
@@ -34,9 +19,9 @@ export default function RequestCard({
   const totalOrders = customerOrders.length;
   const isReturning = totalOrders > 1;
 
-  // 🆕 معلومات التعليق
   const hasComment = !!request.customerComment;
   const commentStatus = request.commentStatus || "pending";
+  const rating = request.customerRating || 0;
 
   const getCommentBadge = (status) => {
     if (status === "approved") return { text: "✅ منشور", className: "bg-green-100 text-green-800 border-green-300" };
@@ -50,7 +35,6 @@ export default function RequestCard({
 
         <div className="flex-1 space-y-4">
 
-          {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-gray-100">
             <div>
               <div className="flex flex-wrap items-center gap-3 mb-2">
@@ -69,7 +53,6 @@ export default function RequestCard({
                   </span>
                 )}
 
-                {/* 🆕 شارة تنبيه لو فيه تعليق pending */}
                 {hasComment && commentStatus === "pending" && (
                   <span className="px-3 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-800 border border-orange-300 animate-pulse">
                     🔔 تعليق جديد!
@@ -179,7 +162,7 @@ export default function RequestCard({
             )}
           </div>
 
-          {/* 🆕 ===== تعليق العميل ===== */}
+          {/* تعليق العميل + التقييم */}
           {hasComment && (
             <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-4">
               <div className="flex items-center justify-between mb-3">
@@ -192,6 +175,16 @@ export default function RequestCard({
               </div>
 
               <div className="bg-white border border-blue-100 rounded-xl p-4 mb-3">
+                {/* 🆕 التقييم بالنجوم */}
+                {rating > 0 && (
+                  <div className="flex items-center gap-1 mb-3 pb-3 border-b border-blue-50">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <span key={s} className={`text-lg ${s <= rating ? "text-yellow-400" : "text-gray-300"}`}>★</span>
+                    ))}
+                    <span className="text-gray-600 text-sm font-bold mr-2">({rating}/5)</span>
+                  </div>
+                )}
+
                 <p className="text-gray-900 leading-8 mb-2">"{request.customerComment}"</p>
                 <p className="text-gray-400 text-xs">
                   بواسطة: {request.commentAuthor || request.name || "عميل"}
@@ -199,39 +192,28 @@ export default function RequestCard({
                 </p>
               </div>
 
-              {/* أزرار الموافقة/الرفض */}
               {commentStatus === "pending" && (
                 <div className="flex gap-3">
-                  <button
-                    onClick={() => approveComment(request.id)}
-                    disabled={moderatingId === request.id}
+                  <button onClick={() => approveComment(request.id)} disabled={moderatingId === request.id}
                     className="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-2.5 rounded-xl font-bold transition disabled:opacity-60 text-sm">
                     {moderatingId === request.id ? "جارٍ..." : "✅ موافقة ونشر"}
                   </button>
-                  <button
-                    onClick={() => rejectComment(request.id)}
-                    disabled={moderatingId === request.id}
+                  <button onClick={() => rejectComment(request.id)} disabled={moderatingId === request.id}
                     className="flex-1 bg-white hover:bg-red-50 text-red-600 border border-red-200 px-4 py-2.5 rounded-xl font-bold transition disabled:opacity-60 text-sm">
                     ❌ رفض
                   </button>
                 </div>
               )}
 
-              {/* لو متوافق عليه، نسمح بالرفض */}
               {commentStatus === "approved" && (
-                <button
-                  onClick={() => rejectComment(request.id)}
-                  disabled={moderatingId === request.id}
+                <button onClick={() => rejectComment(request.id)} disabled={moderatingId === request.id}
                   className="bg-white hover:bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-xl font-bold transition disabled:opacity-60 text-sm">
                   {moderatingId === request.id ? "جارٍ..." : "إلغاء النشر"}
                 </button>
               )}
 
-              {/* لو مرفوض، نسمح بإعادة الموافقة */}
               {commentStatus === "rejected" && (
-                <button
-                  onClick={() => approveComment(request.id)}
-                  disabled={moderatingId === request.id}
+                <button onClick={() => approveComment(request.id)} disabled={moderatingId === request.id}
                   className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-xl font-bold transition disabled:opacity-60 text-sm">
                   {moderatingId === request.id ? "جارٍ..." : "إعادة الموافقة"}
                 </button>
@@ -241,7 +223,6 @@ export default function RequestCard({
 
         </div>
 
-        {/* Actions */}
         <div className="xl:w-[240px] flex flex-col gap-3">
           <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4">
             <p className="text-gray-500 text-sm mb-3 font-bold">إجراءات سريعة</p>
@@ -283,7 +264,6 @@ export default function RequestCard({
 
       </div>
 
-      {/* نافذة الطلبات السابقة */}
       {showHistory && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
           onClick={() => setShowHistory(false)}>

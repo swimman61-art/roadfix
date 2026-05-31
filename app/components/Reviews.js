@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { db } from "../firebase";
 import { collection, query, where, getDocs, limit } from "firebase/firestore";
 
-// الآراء التجريبية الأصلية (هتظهر لو مفيش تعليقات حقيقية كفاية)
 const FALLBACK_REVIEWS = [
   { name: "أحمد محمد", area: "مدينة نصر", rating: 5, text: "بطاريتي وقفت في نص الطريق الساعة 10 بالليل. اتصلت بـ RoadFix والفني وصل في 12 دقيقة بالظبط. خدمة ممتازة جداً!", service: "بطارية" },
   { name: "سارة علي", area: "المعادي", rating: 5, text: "كاوتش وقف وأنا رايحة الشغل. الفني جه بسرعة وغيره وأنا في عربيتي. محتاجتش أتعبت خالص. شكراً RoadFix!", service: "كاوتش" },
@@ -19,7 +18,6 @@ export default function Reviews() {
   useEffect(() => {
     const fetchApprovedComments = async () => {
       try {
-        // نجيب الطلبات اللي عليها تعليقات معتمدة
         const q = query(
           collection(db, "requests"),
           where("commentStatus", "==", "approved"),
@@ -35,12 +33,12 @@ export default function Reviews() {
               area: data.manualAddress
                 ? data.manualAddress.split("-")[0]?.trim() || "عميل RoadFix"
                 : "عميل RoadFix",
-              rating: 5,
+              rating: data.customerRating || 5, // 🆕 التقييم الحقيقي (أو 5 افتراضي)
               text: data.customerComment,
               service: data.service || "خدمة RoadFix",
             };
           })
-          .filter((c) => c.text); // نتأكد إن فيه نص تعليق
+          .filter((c) => c.text);
         setRealReviews(comments);
       } catch (error) {
         console.error("Error fetching reviews:", error);
@@ -52,10 +50,8 @@ export default function Reviews() {
     fetchApprovedComments();
   }, []);
 
-  // نخلط: التعليقات الحقيقية الأول، وبعدها التجريبية لو محتاجين نكمل لـ 4 على الأقل
   const reviewsToShow = (() => {
     if (realReviews.length >= 4) return realReviews.slice(0, 8);
-    // نكمل بالتجريبية
     const needed = 4 - realReviews.length;
     return [...realReviews, ...FALLBACK_REVIEWS.slice(0, needed)];
   })();
@@ -73,8 +69,8 @@ export default function Reviews() {
           {reviewsToShow.map((r, idx) => (
             <div key={r.id || idx} className="bg-gray-50 border border-gray-100 rounded-3xl p-6 hover:shadow-md hover:-translate-y-1 transition-all">
               <div className="flex gap-1 mb-4">
-                {[...Array(r.rating)].map((_, i) => (
-                  <span key={i} className="text-yellow-400 text-lg">★</span>
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <span key={s} className={`text-lg ${s <= r.rating ? "text-yellow-400" : "text-gray-300"}`}>★</span>
                 ))}
               </div>
               <p className="text-gray-700 text-sm leading-relaxed mb-5">"{r.text}"</p>
