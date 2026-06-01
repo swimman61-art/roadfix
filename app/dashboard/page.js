@@ -2,6 +2,7 @@
 
 import { useDashboard, SERVICE_OPTIONS } from "../components/useDashboard";
 import RequestCard from "../components/RequestCard";
+import DashboardCharts from "../components/DashboardCharts";
 
 export default function DashboardPage() {
   const d = useDashboard();
@@ -23,7 +24,6 @@ export default function DashboardPage() {
   return (
     <main className="min-h-screen bg-slate-100 text-gray-900" dir="rtl">
 
-      {/* ===== Header Bar غامق ===== */}
       <div className="bg-gradient-to-l from-slate-900 to-slate-800 text-white">
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-8">
           <div className="flex flex-col md:flex-row gap-4 md:items-center md:justify-between">
@@ -42,7 +42,6 @@ export default function DashboardPage() {
             </button>
           </div>
 
-          {/* Stats */}
           <div className="grid grid-cols-2 xl:grid-cols-5 gap-4 mt-8">
             {[
               { label: "إجمالي الطلبات", value: d.requests.length, color: "text-white", icon: "📋" },
@@ -63,17 +62,17 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ===== Body ===== */}
       <div className="max-w-7xl mx-auto px-4 md:px-6 py-8">
 
-        {/* Alert */}
+        {/* 🆕 الرسوم البيانية */}
+        <DashboardCharts requests={d.requests} />
+
         {d.showAlert && (
           <div className="mb-6 bg-red-500 text-white text-center font-bold py-4 rounded-2xl animate-pulse shadow-lg shadow-red-500/20">
             🚨 طلب جديد وصل الآن!
           </div>
         )}
 
-        {/* 🆕 تنبيه التعليقات المعلّقة */}
         {d.countPendingComments > 0 && (
           <div className="mb-6 bg-orange-50 border-2 border-orange-200 rounded-2xl p-4 flex items-center gap-3 shadow-sm">
             <span className="text-2xl">🔔</span>
@@ -86,14 +85,12 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Search */}
         <div className="mb-6">
           <input type="text" placeholder="🔍 ابحث بالاسم أو رقم الموبايل أو رقم الطلب..."
             value={d.searchTerm} onChange={(e) => d.setSearchTerm(e.target.value)}
             className="w-full bg-white border border-slate-600 rounded-2xl p-4 text-gray-900 outline-none focus:border-red-500 shadow-sm transition placeholder:text-gray-400" />
         </div>
 
-        {/* Status Filter */}
         <div className="flex flex-wrap gap-3 mb-4">
           {[
             { val: "all", label: `الكل (${d.requests.length})`, active: "bg-slate-900 border-slate-900" },
@@ -108,7 +105,6 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* Service Filter */}
         <div className="flex flex-wrap gap-2 mb-8">
           {SERVICE_OPTIONS.map((s) => (
             <button key={s} onClick={() => d.setServiceFilter(s)}
@@ -118,7 +114,6 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* Requests */}
         {d.filteredRequests.length === 0 ? (
           <div className="bg-white border border-gray-200 rounded-3xl p-12 text-center shadow-sm">
             <p className="text-5xl mb-4">📭</p>
