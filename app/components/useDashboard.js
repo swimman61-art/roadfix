@@ -7,10 +7,16 @@ import {
   collection, query, orderBy, doc, updateDoc, deleteDoc, onSnapshot,
 } from "firebase/firestore";
 import { onAuthStateChanged, signOut } from "firebase/auth";
+import emailjs from "@emailjs/browser";
 
 export const SERVICE_OPTIONS = [
   "all", "بطارية", "كاوتش", "بنزين", "كهرباء", "ميكانيكا", "صيانة دورية", "عطل",
 ];
+
+// 🆕 EmailJS keys
+const EMAILJS_SERVICE_ID = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID || "";
+const EMAILJS_CUSTOMER_TEMPLATE_ID = process.env.NEXT_PUBLIC_EMAILJS_CUSTOMER_TEMPLATE_ID || "";
+const EMAILJS_PUBLIC_KEY = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY || "";
 
 export function useDashboard() {
   const router = useRouter();
@@ -36,14 +42,60 @@ export function useDashboard() {
   const previousCountRef = useRef(0);
   const firstLoadRef = useRef(true);
 
+  // 🆕 دالة إرسال إيميل للعميل
+  const sendEmailToCustomer = async (request, statusLabel) => {
+    // نتأكد إن المفاتيح موجودة
+    if (!EMAILJS_SERVICE_ID || !EMAILJS_CUSTOMER_TEMPLATE_ID || !EMAILJS_PUBLIC_KEY) {
+      console.warn("EmailJS keys missing, skipping customer notification");
+      return;
+    }
+
+    // نتأكد إن العميل عنده إيميل مسجّل
+    if (!request.userEmail) {
+      console.log("No customer email - skipping notification (likely a guest order)");
+      return;
+    }
+
+    try {
+      const templateParams = {
+        customer_email: request.userEmail,
+        customer_name: request.name || "عميلنا",
+        request_number: request.requestNumber || "",
+        service: request.service || "غير محدد",
+        status: statusLabel,
+        price: request.adminPrice ? `${request.adminPrice} جنيه` : "يحدد حسب الموقع",
+        notes: request.adminNotes || "لا توجد ملاحظات إضافية",
+      };
+
+      await emailjs.send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_CUSTOMER_TEMPLATE_ID,
+        templateParams,
+        EMAILJS_PUBLIC_KEY
+      );
+
+      console.log("✅ Customer notification email sent to:", request.userEmail);
+    } catch (error) {
+      console.error("❌ Failed to send customer email:", error);
+    }
+  };
+
   const updateStatus = async (id, currentStatus) => {
     let newStatus = "new";
     if (currentStatus === "new") newStatus = "in-progress";
     else if (currentStatus === "in-progress") newStatus = "done";
     else newStatus = "done";
+
     try {
       await updateDoc(doc(db, "requests", id), { status: newStatus });
       setRequests((prev) => prev.map((req) => req.id === id ? { ...req, status: newStatus } : req));
+
+      // 🆕 نبعت إيميل للعميل
+      const updatedRequest = requests.find((r) => r.id === id);
+      if (updatedRequest) {
+        const statusLabel = newStatus === "in-progress" ? "جاري التنفيذ 🔧" : newStatus === "done" ? "تم التنفيذ ✅" : "جديد 🆕";
+        sendEmailToCustomer({ ...updatedRequest, status: newStatus }, statusLabel);
+      }
     } catch (error) { console.error("Error updating status:", error); }
   };
 
@@ -58,6 +110,17 @@ export function useDashboard() {
         prev.map((req) => req.id === id ? { ...req, adminPrice: editPrice, adminNotes: editNotes } : req)
       );
       setEditingId("");
+
+      // 🆕 نبعت إيميل للعميل بعد التحديث
+      const updatedRequest = requests.find((r) => r.id === id);
+      if (updatedRequest) {
+        const currentStatus = updatedRequest.status || "new";
+        const statusLabel = currentStatus === "in-progress" ? "جاري التنفيذ 🔧" : currentStatus === "done" ? "تم التنفيذ ✅" : "جديد 🆕";
+        sendEmailToCustomer(
+          { ...updatedRequest, adminPrice: editPrice, adminNotes: editNotes },
+          statusLabel
+        );
+      }
     } catch (error) { alert("حصل خطأ أثناء الحفظ"); }
     finally { setSavingId(""); }
   };
@@ -194,7 +257,6 @@ export function useDashboard() {
     (r) => r.customerComment && r.commentStatus === "pending"
   ).length;
 
-  // 🆕 متوسط التقييمات (من التعليقات المعتمدة بس)
   const averageRating = useMemo(() => {
     const ratings = requests
       .filter((r) => r.customerRating > 0 && r.commentStatus === "approved")
@@ -270,7 +332,7 @@ export function useDashboard() {
     countProgress,
     countDone,
     countPendingComments,
-    averageRating, // 🆕
+    averageRating,
     topService,
     getCustomerOrders,
   };
