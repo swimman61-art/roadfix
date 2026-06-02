@@ -5,17 +5,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
 import { auth } from "../firebase";
+import { useLanguage } from "../components/LanguageProvider";
 
-// إيميل الأدمن من المتغير السري
 const ADMIN_EMAIL = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase();
-
-// دالة بسيطة تحدد لو الإيميل ده أدمن ولا عميل
-const isAdminEmail = (email) => {
-  return (email || "").toLowerCase().trim() === ADMIN_EMAIL;
-};
+const isAdminEmail = (email) => (email || "").toLowerCase().trim() === ADMIN_EMAIL;
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t, dir, lang } = useLanguage();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,7 +22,6 @@ export default function LoginPage() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        // لو فيه حد مسجّل دخول بالفعل، نوجّهه حسب نوعه
         if (isAdminEmail(user.email)) {
           router.replace("/dashboard");
         } else {
@@ -35,46 +31,41 @@ export default function LoginPage() {
       }
       setCheckingAuth(false);
     });
-
     return () => unsubscribe();
   }, [router]);
 
-  const getArabicErrorMessage = (errorCode) => {
+  const getErrorMessage = (errorCode) => {
+    const isAr = lang === "ar";
     switch (errorCode) {
       case "auth/invalid-email":
-        return "صيغة البريد الإلكتروني غير صحيحة";
+        return isAr ? "صيغة البريد الإلكتروني غير صحيحة" : "Invalid email format";
       case "auth/invalid-credential":
-        return "الإيميل أو الباسورد غير صحيح، أو المستخدم غير موجود";
+        return isAr ? "الإيميل أو الباسورد غير صحيح، أو المستخدم غير موجود" : "Invalid email or password, or user not found";
       case "auth/user-not-found":
-        return "المستخدم غير موجود";
+        return isAr ? "المستخدم غير موجود" : "User not found";
       case "auth/wrong-password":
-        return "كلمة المرور غير صحيحة";
+        return isAr ? "كلمة المرور غير صحيحة" : "Wrong password";
       case "auth/missing-password":
-        return "من فضلك اكتب كلمة المرور";
+        return isAr ? "من فضلك اكتب كلمة المرور" : "Please enter password";
       case "auth/too-many-requests":
-        return "تمت محاولات كثيرة. حاول بعد قليل";
+        return isAr ? "تمت محاولات كثيرة. حاول بعد قليل" : "Too many attempts. Try again later";
       case "auth/network-request-failed":
-        return "في مشكلة في الإنترنت أو الاتصال بـ Firebase";
+        return isAr ? "في مشكلة في الإنترنت أو الاتصال بـ Firebase" : "Network or Firebase connection issue";
       default:
-        return `حصل خطأ: ${errorCode}`;
+        return isAr ? `حصل خطأ: ${errorCode}` : `Error: ${errorCode}`;
     }
   };
 
   const handleLogin = async (e) => {
     e.preventDefault();
-
     if (!email || !password) {
-      alert("من فضلك اكتب الإيميل والباسورد");
+      alert(lang === "ar" ? "من فضلك اكتب الإيميل والباسورد" : "Please enter email and password");
       return;
     }
-
     try {
       setLoading(true);
-
       const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
       const userEmail = userCredential.user.email;
-
-      // التوجيه حسب نوع المستخدم
       if (isAdminEmail(userEmail)) {
         router.replace("/dashboard");
       } else {
@@ -82,7 +73,7 @@ export default function LoginPage() {
       }
     } catch (error) {
       console.error("Firebase login error:", error);
-      alert(getArabicErrorMessage(error.code));
+      alert(getErrorMessage(error.code));
     } finally {
       setLoading(false);
     }
@@ -90,33 +81,31 @@ export default function LoginPage() {
 
   if (checkingAuth) {
     return (
-      <main className="min-h-screen bg-white text-gray-900 flex items-center justify-center px-4" dir="rtl">
+      <main className="min-h-screen bg-white text-gray-900 flex items-center justify-center px-4" dir={dir}>
         <div className="text-center">
           <span className="bg-red-50 text-red-500 font-bold text-sm px-4 py-2 rounded-full">RoadFix</span>
-          <h1 className="text-2xl font-black mt-4 mb-3">جارٍ التحميل...</h1>
-          <p className="text-gray-500">من فضلك انتظر لحظة</p>
+          <h1 className="text-2xl font-black mt-4 mb-3">{t("common.loading")}</h1>
+          <p className="text-gray-500">{t("common.pleaseWait")}</p>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-white text-gray-900 flex items-center justify-center px-4 py-12" dir="rtl">
+    <main className="min-h-screen bg-white text-gray-900 flex items-center justify-center px-4 py-12" dir={dir}>
       <div className="w-full max-w-md bg-white border border-gray-100 rounded-3xl p-6 md:p-8 shadow-sm">
         <div className="text-center mb-6">
           <span className="bg-red-50 text-red-500 font-bold text-sm px-4 py-2 rounded-full">RoadFix</span>
-          <h1 className="text-3xl font-black mt-4 mb-3">تسجيل الدخول</h1>
-          <p className="text-gray-500 mt-2">
-            سجّل دخولك للوصول لطلباتك أو لوحة التحكم
-          </p>
+          <h1 className="text-3xl font-black mt-4 mb-3">{t("login.pageTitle")}</h1>
+          <p className="text-gray-500 mt-2">{t("login.pageSubtitle")}</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block mb-2 text-sm text-gray-600 font-bold">البريد الإلكتروني</label>
+            <label className="block mb-2 text-sm text-gray-600 font-bold">{t("login.email")}</label>
             <input
               type="email"
-              placeholder="example@email.com"
+              placeholder={t("login.emailPlaceholder")}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full p-3 rounded-xl bg-gray-50 border border-slate-400 text-gray-900 outline-none focus:border-red-500 focus:bg-white transition placeholder:text-gray-400"
@@ -124,7 +113,7 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="block mb-2 text-sm text-gray-600 font-bold">كلمة المرور</label>
+            <label className="block mb-2 text-sm text-gray-600 font-bold">{t("login.password")}</label>
             <input
               type="password"
               placeholder="••••••••"
@@ -139,15 +128,14 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full bg-red-500 hover:bg-red-600 text-white p-4 rounded-2xl font-black text-lg transition disabled:opacity-60 shadow-lg shadow-red-500/20"
           >
-            {loading ? "جارٍ تسجيل الدخول..." : "دخول"}
+            {loading ? t("login.submitting") : t("login.submit")}
           </button>
         </form>
 
-        {/* رابط التسجيل للعملاء الجدد */}
         <div className="mt-6 pt-6 border-t border-gray-100 text-center">
-          <p className="text-gray-500 text-sm mb-2">معندكش حساب؟</p>
+          <p className="text-gray-500 text-sm mb-2">{t("login.noAccount")}</p>
           <Link href="/signup" className="text-red-500 hover:text-red-600 font-bold text-sm">
-            اعمل حساب جديد ←
+            {t("login.createAccount")}
           </Link>
         </div>
       </div>

@@ -1,79 +1,76 @@
-import Link from "next/link";
+"use client";
 
-const comparison = [
-  { feature: "بيجي لموقعك", roadfix: true, garage: false },
-  { feature: "متاح 24/7", roadfix: true, garage: false },
-  { feature: "وقت الانتظار", roadfix: "أسرع وقت", garage: "ساعات" },
-  { feature: "سعر محدد مسبقاً", roadfix: true, garage: false },
-  { feature: "تتبع الطلب", roadfix: true, garage: false },
-  { feature: "مفيش زحمة ورش", roadfix: true, garage: false },
-];
+import Link from "next/link";
+import { useLanguage } from "./LanguageProvider";
 
 export default function Comparison() {
+  const { t } = useLanguage();
+
+  const comparison = [
+    { feature: t("comparison.features.toYou"), roadfix: true, garage: false },
+    { feature: t("comparison.features.available24"), roadfix: true, garage: false },
+    { feature: t("comparison.features.waitTime"), roadfix: t("comparison.features.waitFast"), garage: t("comparison.features.waitHours") },
+    { feature: t("comparison.features.priceUpfront"), roadfix: true, garage: false },
+    { feature: t("comparison.features.tracking"), roadfix: true, garage: false },
+    { feature: t("comparison.features.noCrowd"), roadfix: true, garage: false },
+  ];
+
   return (
     <section className="py-24 px-4 bg-white">
       <div className="max-w-5xl mx-auto">
 
-        {/* 🆕 قسم الصورة + الجملة التأثيرية */}
         <div className="grid md:grid-cols-2 gap-8 items-center mb-16 bg-gradient-to-br from-red-50 to-orange-50 rounded-3xl p-8 md:p-10 border border-red-100">
-
-          {/* الصورة */}
           <div className="relative rounded-2xl overflow-hidden shadow-xl">
             <img
               src="/images/customer-checking.jpg"
-              alt="عميلة بتبص في عربيتها بقلق"
+              alt="Customer checking car"
               className="w-full h-72 object-cover"
             />
-            {/* تأثير hover خفيف */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
           </div>
 
-          {/* النص */}
           <div className="text-center md:text-right">
             <span className="bg-white text-red-500 font-bold text-xs px-3 py-1.5 rounded-full inline-block mb-4 shadow-sm">
-              💭 شايف نفسك في الموقف ده؟
+              {t("comparison.sectionBadge")}
             </span>
             <h3 className="text-2xl md:text-3xl font-black text-gray-900 mb-4 leading-snug">
-              عربيتك واقفة وانت مش عارف تعمل إيه؟
+              {t("comparison.sectionTitle")}
             </h3>
             <p className="text-gray-600 leading-8 mb-5">
-              في الطريقة العادية، هتسحب العربية لورشة، تستنى ساعات، وتدفع اللي تقوله لك. 
-              مع RoadFix، الفني بييجيلك في مكانك وبسعر معروف من الأول.
+              {t("comparison.sectionDesc")}
             </p>
             <div className="flex flex-wrap gap-2 justify-center md:justify-start">
               <span className="bg-white text-gray-700 text-xs font-bold px-3 py-1.5 rounded-full border border-gray-200">
-                ⏱ توفير وقت
+                {t("comparison.tag1")}
               </span>
               <span className="bg-white text-gray-700 text-xs font-bold px-3 py-1.5 rounded-full border border-gray-200">
-                💰 سعر واضح
+                {t("comparison.tag2")}
               </span>
               <span className="bg-white text-gray-700 text-xs font-bold px-3 py-1.5 rounded-full border border-gray-200">
-                🚗 راحة كاملة
+                {t("comparison.tag3")}
               </span>
             </div>
           </div>
         </div>
 
-        {/* عنوان جدول المقارنة */}
         <div className="text-center mb-12">
-          <span className="bg-red-50 text-red-500 font-bold text-sm px-4 py-2 rounded-full">المقارنة</span>
-          <h2 className="text-4xl md:text-5xl font-black mt-4 mb-4">RoadFix vs الورشة العادية</h2>
-          <p className="text-gray-500 text-lg">شوف الفرق بنفسك</p>
+          <span className="bg-red-50 text-red-500 font-bold text-sm px-4 py-2 rounded-full">{t("comparison.badge")}</span>
+          <h2 className="text-4xl md:text-5xl font-black mt-4 mb-4">{t("comparison.title")}</h2>
+          <p className="text-gray-500 text-lg">{t("comparison.subtitle")}</p>
         </div>
 
-        {/* جدول المقارنة الأصلي */}
         <div className="max-w-3xl mx-auto">
           <div className="bg-gray-50 rounded-3xl overflow-hidden border border-gray-100 shadow-sm">
             <div className="grid grid-cols-3 bg-slate-900 text-white">
-              <div className="p-4 font-bold text-gray-400 text-sm">المميزة</div>
+              <div className="p-4 font-bold text-gray-400 text-sm">{t("comparison.tableFeature")}</div>
               <div className="p-4 text-center font-black text-red-400 border-x border-white/10">
                 Road<span className="text-white">Fix</span>
               </div>
-              <div className="p-4 text-center font-bold text-gray-400 text-sm">ورشة عادية</div>
+              <div className="p-4 text-center font-bold text-gray-400 text-sm">{t("comparison.tableRoadfix")}</div>
             </div>
 
             {comparison.map((row, i) => (
-              <div key={row.feature}
+              <div key={i}
                 className={`grid grid-cols-3 border-b border-gray-100 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
                 <div className="p-4 font-bold text-gray-700 text-sm flex items-center">{row.feature}</div>
                 <div className="p-4 text-center border-x border-gray-100 flex items-center justify-center">
@@ -93,11 +90,10 @@ export default function Comparison() {
           <div className="text-center mt-8">
             <Link href="/request"
               className="bg-red-500 hover:bg-red-600 text-white px-10 py-4 rounded-2xl font-black text-lg transition-all hover:scale-105 shadow-lg shadow-red-500/20 inline-block">
-              جرب RoadFix دلوقتي 🚀
+              {t("comparison.tryNow")}
             </Link>
           </div>
         </div>
-
       </div>
     </section>
   );

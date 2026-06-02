@@ -5,12 +5,15 @@ import { useEffect, useState } from "react";
 import { auth } from "../firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
+import { useLanguage } from "./LanguageProvider";
+import LanguageSwitcher from "./LanguageSwitcher";
 
 const ADMIN_EMAIL = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase();
 const isAdminEmail = (email) => (email || "").toLowerCase().trim() === ADMIN_EMAIL;
 
 export default function SiteHeader() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [logoutLoading, setLogoutLoading] = useState(false);
@@ -49,35 +52,35 @@ export default function SiteHeader() {
               <span className="text-red-500">Fix</span>
             </Link>
             <span className="hidden sm:inline-block text-xs md:text-sm text-gray-400 border border-white/10 rounded-full px-3 py-1">
-              Roadside Assistance System
+              {t("nav.siteTagline")}
             </span>
           </div>
 
           <nav className="flex flex-wrap items-center gap-2 md:gap-3">
             <Link href="/"
               className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-white/5 border border-white/10 hover:bg-white/10 transition">
-              الرئيسية
+              {t("nav.home")}
             </Link>
 
             <Link href="/request"
               className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-white/5 border border-white/10 hover:bg-white/10 transition">
-              اطلب خدمة
+              {t("nav.requestService")}
             </Link>
 
             <Link href="/my-orders"
               className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-white/5 border border-white/10 hover:bg-white/10 transition">
-              طلباتي
+              {t("nav.myOrders")}
             </Link>
 
             {!loading && !currentUser && (
               <>
                 <Link href="/login"
                   className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-white/5 border border-white/10 hover:bg-white/10 transition">
-                  دخول
+                  {t("nav.login")}
                 </Link>
                 <Link href="/signup"
                   className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-red-600 hover:bg-red-700 border border-red-500 transition">
-                  إنشاء حساب
+                  {t("nav.signup")}
                 </Link>
               </>
             )}
@@ -86,11 +89,11 @@ export default function SiteHeader() {
               <>
                 <Link href="/dashboard"
                   className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 border border-blue-500 transition">
-                  لوحة التحكم
+                  {t("nav.dashboard")}
                 </Link>
                 <button onClick={handleLogout} disabled={logoutLoading}
                   className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-red-600 hover:bg-red-700 border border-red-500 transition disabled:opacity-60">
-                  {logoutLoading ? "جارٍ الخروج..." : "تسجيل الخروج"}
+                  {logoutLoading ? t("nav.loggingOut") : t("nav.logout")}
                 </button>
               </>
             )}
@@ -98,9 +101,12 @@ export default function SiteHeader() {
             {!loading && isCustomer && (
               <button onClick={handleLogout} disabled={logoutLoading}
                 className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-red-600 hover:bg-red-700 border border-red-500 transition disabled:opacity-60">
-                {logoutLoading ? "جارٍ الخروج..." : "تسجيل الخروج"}
+                {logoutLoading ? t("nav.loggingOut") : t("nav.logout")}
               </button>
             )}
+
+            {/* زرار اللغة */}
+            <LanguageSwitcher />
           </nav>
         </div>
       </div>
