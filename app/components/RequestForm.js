@@ -1,8 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { useRequestForm, SERVICE_OPTIONS } from "./useRequestForm";
 import RequestSidebar from "./RequestSidebar";
 import { useLanguage } from "./LanguageProvider";
+import CarAutocomplete from "./CarAutocomplete";
+import { getAllBrands, getModelsForBrand } from "./carData";
 
 export default function RequestForm() {
   const { t, dir, lang, translateService } = useLanguage();
@@ -25,6 +28,19 @@ export default function RequestForm() {
     name, setName,
     phone, setPhone,
   } = useRequestForm();
+
+  // 🆕 state للماركة والموديل
+  const [carBrand, setCarBrand] = useState("");
+  const [carModel, setCarModel] = useState("");
+
+  // لما الماركة تتغير، نمسح الموديل
+  const handleBrandChange = (newBrand) => {
+    setCarBrand(newBrand);
+    // لو غيّر الماركة، نمسح الموديل لأنه ممكن مش مطابق
+    if (newBrand !== carBrand) {
+      setCarModel("");
+    }
+  };
 
   const inputClass =
     "w-full p-3 rounded-xl bg-gray-50 border border-slate-400 text-gray-900 outline-none focus:border-red-500 focus:bg-white transition placeholder:text-gray-400";
@@ -105,6 +121,10 @@ export default function RequestForm() {
       </main>
     );
   }
+
+  // نجيب الموديلات المتاحة بناءً على الماركة
+  const availableModels = getModelsForBrand(carBrand);
+  const isBrandKnown = !!availableModels.length;
 
   return (
     <main className="min-h-screen bg-white text-gray-900 px-4 py-12 md:px-6" dir={dir}>
@@ -188,11 +208,52 @@ export default function RequestForm() {
                 </div>
               </div>
 
+              {/* 🆕 بيانات العربية مع Autocomplete */}
               <div className="bg-gray-50 border border-gray-100 rounded-2xl p-5">
                 <h3 className="text-lg font-black text-gray-900 mb-4">{t("request.carData")}</h3>
                 <div className="grid md:grid-cols-2 gap-4">
-                  <input name="carBrand" placeholder={t("request.carBrandPlaceholder")} className={inputClass} />
-                  <input name="carModel" placeholder={t("request.carModelPlaceholder")} className={inputClass} />
+
+                  {/* الماركة - Autocomplete */}
+                  <div>
+                    <label className="block mb-2 text-sm text-gray-600 font-bold">
+                      {lang === "ar" ? "نوع العربية" : "Car Brand"}
+                    </label>
+                    <CarAutocomplete
+                      name="carBrand"
+                      value={carBrand}
+                      onChange={handleBrandChange}
+                      placeholder={lang === "ar" ? "ابحث: Toyota, BMW, Hyundai..." : "Search: Toyota, BMW, Hyundai..."}
+                      suggestions={getAllBrands()}
+                      emptyMessage={lang === "ar" ? "اكتب اسم العربية لو مش في القائمة" : "Type your brand name"}
+                    />
+                  </div>
+
+                  {/* الموديل - Autocomplete مربوط بالماركة */}
+                  <div>
+                    <label className="block mb-2 text-sm text-gray-600 font-bold">
+                      {lang === "ar" ? "الموديل" : "Model"}
+                      {carBrand && isBrandKnown && (
+                        <span className="text-green-600 text-xs mr-2 ml-2">
+                          ✓ {availableModels.length} {lang === "ar" ? "موديل متاح" : "models"}
+                        </span>
+                      )}
+                    </label>
+                    <CarAutocomplete
+                      name="carModel"
+                      value={carModel}
+                      onChange={setCarModel}
+                      placeholder={
+                        carBrand
+                          ? isBrandKnown
+                            ? (lang === "ar" ? "اختر الموديل من القائمة" : "Choose model from list")
+                            : (lang === "ar" ? "اكتب الموديل" : "Type model")
+                          : (lang === "ar" ? "اختر الماركة الأول" : "Choose brand first")
+                      }
+                      suggestions={availableModels}
+                      emptyMessage={lang === "ar" ? "اكتب اسم الموديل لو مش في القائمة" : "Type your model"}
+                    />
+                  </div>
+
                   <input name="carYear" inputMode="numeric" placeholder={t("request.carYearPlaceholder")} className={inputClass} />
                   <input name="plateNumber" placeholder={t("request.plateNumberPlaceholder")} className={inputClass} />
                 </div>
