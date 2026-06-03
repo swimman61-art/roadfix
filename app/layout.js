@@ -2,6 +2,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import SiteHeader from "./components/SiteHeader";
 import { LanguageProvider } from "./components/LanguageProvider";
+import InstallPrompt from "./components/InstallPrompt";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,7 +37,6 @@ export const metadata = {
   authors: [{ name: "RoadFix" }],
   creator: "RoadFix",
 
-  // 🆕 PWA configuration
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -83,7 +83,6 @@ export const metadata = {
   },
 };
 
-// 🆕 viewport configuration (لو فيه shake على الموبايل)
 export const viewport = {
   themeColor: "#ef4444",
   width: "device-width",
@@ -103,6 +102,7 @@ export default function RootLayout({ children }) {
         <LanguageProvider>
           <SiteHeader />
           <main className="flex-1">{children}</main>
+          <InstallPrompt />
         </LanguageProvider>
       </body>
     </html>

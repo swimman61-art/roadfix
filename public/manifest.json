@@ -1,0 +1,43 @@
+{
+  "name": "RoadFix - خدمة إصلاح السيارات المتنقلة",
+  "short_name": "RoadFix",
+  "description": "خدمة إصلاح سيارات متنقلة في القاهرة والجيزة. فني متخصص يجي لموقعك في أسرع وقت. بطارية، كاوتش، بنزين، كهرباء، ميكانيكا. متاح 24/7.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#ef4444",
+  "lang": "ar",
+  "dir": "rtl",
+  "categories": ["business", "utilities", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "اطلب خدمة",
+      "short_name": "اطلب",
+      "description": "طلب فني سيارات فوراً",
+      "url": "/request",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "طلباتي",
+      "short_name": "طلباتي",
+      "description": "متابعة طلباتي السابقة",
+      "url": "/my-orders",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
