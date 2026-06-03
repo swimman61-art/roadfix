@@ -35,6 +35,24 @@ export const metadata = {
   ],
   authors: [{ name: "RoadFix" }],
   creator: "RoadFix",
+
+  // 🆕 PWA configuration
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "RoadFix",
+  },
+  icons: {
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/icons/apple-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
+
   openGraph: {
     type: "website",
     locale: "ar_EG",
@@ -63,6 +81,15 @@ export const metadata = {
     follow: true,
     googleBot: { index: true, follow: true },
   },
+};
+
+// 🆕 viewport configuration (لو فيه shake على الموبايل)
+export const viewport = {
+  themeColor: "#ef4444",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({ children }) {
