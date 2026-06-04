@@ -6,7 +6,6 @@ import Hero from "./components/Hero";
 import RealServices from "./components/RealServices";
 import Features from "./components/Features";
 import Comparison from "./components/Comparison";
-import Services from "./components/Services";
 import HowItWorks from "./components/HowItWorks";
 import Reviews from "./components/Reviews";
 import Coverage from "./components/Coverage";
@@ -22,7 +21,6 @@ export default function HomePage() {
       <RealServices />
       <Features />
       <Comparison />
-      <Services />
       <HowItWorks />
       <Reviews />
       <Coverage />
