@@ -32,6 +32,14 @@ export default function RealServices() {
     },
   ];
 
+  // 🆕 4 صور للبطاقة الرابعة (نفس الصور + الصورة المتبقية)
+  const collageImages = [
+    "/images/battery-service.jpg",
+    "/images/flat-tire.jpg",
+    "/images/hero-roadside.jpg",
+    "/images/car-on-road.jpg",
+  ];
+
   // كل الخدمات المتاحة
   const allServices = [
     { name: lang === "ar" ? "بطارية" : "Battery", icon: "🔋", desc: lang === "ar" ? "شحن أو استبدال فوري" : "Instant charge or replacement", value: "بطارية" },
@@ -55,7 +63,7 @@ export default function RealServices() {
             </p>
           </div>
 
-          {/* 4 بطاقات (3 صور + بطاقة "خدمات تانية") */}
+          {/* 4 بطاقات (3 صور + بطاقة "خدمات تانية" بـ 4 صور صغيرة) */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
 
             {/* الـ 3 بطاقات بالصور */}
@@ -89,39 +97,46 @@ export default function RealServices() {
               </Link>
             ))}
 
-            {/* 🆕 البطاقة الرابعة: خدمات تانية */}
+            {/* 🆕 البطاقة الرابعة: 4 صور صغيرة + خدمات تانية */}
             <button
               onClick={() => setShowAllServices(true)}
-              className="group bg-gradient-to-br from-red-500 to-red-700 rounded-3xl overflow-hidden border border-red-400 shadow-md hover:shadow-2xl hover:-translate-y-1 transition-all text-white relative"
+              className="group bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all text-right"
             >
-              {/* تأثير bg pattern */}
-              <div className="absolute inset-0 opacity-10"
-                style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
+              {/* الـ 4 صور كولاج */}
+              <div className="relative h-56 overflow-hidden grid grid-cols-2 gap-0.5 bg-gray-100">
+                {collageImages.map((img, idx) => (
+                  <div key={idx} className="relative overflow-hidden">
+                    <img
+                      src={img}
+                      alt={`Service ${idx + 1}`}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                  </div>
+                ))}
 
-              <div className="relative z-10 h-full flex flex-col items-center justify-center p-6 min-h-[340px]">
-
-                {/* الأيقونة */}
-                <div className="w-20 h-20 rounded-3xl bg-white/20 backdrop-blur flex items-center justify-center text-5xl mb-5 group-hover:scale-110 transition-transform">
-                  ⚡
+                {/* overlay غامق فوق الـ 4 صور */}
+                <div className="absolute inset-0 bg-gradient-to-br from-red-600/80 via-red-500/70 to-red-700/80 flex items-center justify-center">
+                  {/* المحتوى فوق الـ overlay */}
+                  <div className="text-center text-white px-4">
+                    <div className="text-5xl mb-2">⚡</div>
+                    <p className="text-2xl font-black drop-shadow-lg">
+                      {lang === "ar" ? "+ خدمات تانية" : "+ More services"}
+                    </p>
+                  </div>
                 </div>
+              </div>
 
-                {/* العنوان */}
-                <h3 className="text-2xl md:text-3xl font-black mb-3 text-center">
-                  {lang === "ar" ? "+ خدمات تانية" : "+ More services"}
-                </h3>
-
-                {/* الوصف */}
-                <p className="text-white/90 text-center text-sm mb-5 leading-relaxed">
+              {/* النص تحت */}
+              <div className="p-5">
+                <p className="text-gray-600 leading-relaxed text-sm mb-3 line-clamp-2">
                   {lang === "ar"
-                    ? "بنزين، كهرباء، ميكانيكا، وأكتر"
-                    : "Fuel, electrical, mechanic & more"}
+                    ? "بنزين، كهرباء، ميكانيكا، صيانة دورية وأكتر"
+                    : "Fuel, electrical, mechanic, maintenance & more"}
                 </p>
-
-                {/* زرار */}
-                <div className="bg-white text-red-600 px-5 py-2.5 rounded-xl font-black text-sm group-hover:bg-yellow-100 transition-all flex items-center gap-2">
+                <span className="text-red-500 font-bold text-sm group-hover:gap-3 transition-all inline-flex items-center gap-2">
                   {lang === "ar" ? "اكتشف الكل" : "Discover all"}
-                  <span className="transition-transform group-hover:translate-x-1">→</span>
-                </div>
+                  <span className="transition-transform group-hover:-translate-x-1">←</span>
+                </span>
               </div>
             </button>
 
@@ -129,16 +144,14 @@ export default function RealServices() {
         </div>
       </section>
 
-      {/* 🆕 Modal لكل الخدمات */}
+      {/* Modal لكل الخدمات */}
       {showAllServices && (
         <>
-          {/* الخلفية الشفافة */}
           <div
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[80] animate-fadeIn"
             onClick={() => setShowAllServices(false)}
           />
 
-          {/* الـ Modal */}
           <div
             className="fixed inset-0 z-[90] flex items-center justify-center p-4 animate-fadeIn"
             onClick={() => setShowAllServices(false)}
@@ -148,7 +161,6 @@ export default function RealServices() {
               onClick={(e) => e.stopPropagation()}
               dir={lang === "ar" ? "rtl" : "ltr"}
             >
-              {/* الـ Header */}
               <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-5 flex items-center justify-between rounded-t-3xl">
                 <div>
                   <h3 className="text-2xl font-black text-gray-900">
@@ -167,7 +179,6 @@ export default function RealServices() {
                 </button>
               </div>
 
-              {/* قائمة الخدمات */}
               <div className="p-6">
                 <div className="grid sm:grid-cols-2 gap-3">
                   {allServices.map((svc) => (
@@ -191,7 +202,6 @@ export default function RealServices() {
                   ))}
                 </div>
 
-                {/* رسالة في الآخر */}
                 <div className="mt-6 bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-200 rounded-2xl p-4 text-center">
                   <p className="text-amber-800 text-sm leading-7">
                     {lang === "ar"
